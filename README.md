@@ -35,14 +35,18 @@ Access-Control-Allow-Headers: Content-Type
 ```
 
 **Dev-only Chrome launch / テスト用途のみ**
+### macOS
 ```bash
-# macOS
 open -na "Google Chrome" --args --disable-web-security --user-data-dir=/tmp/chrome_dev
+```
 
-# Windows
+### Windows
+```bash
 "C:\Program Files\Google\Chrome\Application\chrome.exe" --disable-web-security --user-data-dir=%TEMP%\chrome_dev
+```
 
-# Linux
+### Linux
+```bash
 google-chrome --disable-web-security --user-data-dir=/tmp/chrome_dev
 ```
 

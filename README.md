@@ -24,7 +24,8 @@ https://taqq505.github.io/nmos-patch-gui/
 
 ## CORS / CORS
 This UI sends PATCH directly to devices, so device-side CORS headers are required.  
-ブラウザから直接PATCHするため、機器側のCORS対応が必要です。
+ノードがCORS対応していない場合は、以下の方法でChromeを立ち上げ直してください。  
+ただし、**このモードは安全ではありません。テスト用途のみに限定してください。**
 
 **Device-side headers / 機器側ヘッダー例**
 ```

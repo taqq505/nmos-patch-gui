@@ -185,31 +185,57 @@ export class NMOSClient {
     }
 
     /**
-     * Test PATCH path (with or without trailing slash)
+     * Test PATCH path and get current receiver state
+     * Sends master_enable: false to safely query receiver without changing state
      */
     async testPatchPath(receiverId) {
         const basePath = `/x-nmos/connection/${this.is05Version}/single/receivers/${receiverId}/staged`;
+        const suffixes = ['/', ''];
+        let lastError = null;
 
-        // Try with trailing slash first
-        for (const suffix of ['/', '']) {
+        // Prefer a GET check first (some nodes reject partial PATCH bodies)
+        for (const suffix of suffixes) {
             const path = basePath + suffix;
             try {
-                await this.patchJSON(path, {
-                    activation: { mode: 'activate_immediate' },
-                    master_enable: false
-                }, this.is05BaseUrl);
+                const staged = await this.fetchJSON(path, this.is05BaseUrl);
+                console.log(`✅ GET path confirmed: ${path}`);
 
-                console.log(`✅ PATCH path confirmed: ${path}`);
                 return {
                     stagedPath: path,
-                    activePath: `/x-nmos/connection/${this.is05Version}/single/receivers/${receiverId}/active/`
+                    activePath: `/x-nmos/connection/${this.is05Version}/single/receivers/${receiverId}/active/`,
+                    currentState: staged
                 };
             } catch (error) {
-                console.log(`Failed to PATCH ${path}:`, error.message);
+                console.log(`Failed to GET ${path}:`, error.message);
+                lastError = error;
             }
         }
 
-        throw new Error('Could not determine correct PATCH path for receiver');
+        // Fallback: Try with trailing slash first via PATCH probe
+        for (const suffix of suffixes) {
+            const path = basePath + suffix;
+            try {
+                const response = await this.patchJSON(path, {
+                    activation: { mode: 'activate_immediate' },
+                    master_enable: false
+                }, this.is05BaseUrl, true); // Get response body
+
+                console.log(`✅ PATCH path confirmed: ${path}`);
+                console.log('Current receiver state:', response);
+
+                return {
+                    stagedPath: path,
+                    activePath: `/x-nmos/connection/${this.is05Version}/single/receivers/${receiverId}/active/`,
+                    currentState: response
+                };
+            } catch (error) {
+                console.log(`Failed to PATCH ${path}:`, error.message);
+                lastError = error;
+            }
+        }
+
+        const reason = lastError ? ` (${lastError.message})` : '';
+        throw new Error(`Could not determine correct PATCH path for receiver${reason}`);
     }
 
     /**
@@ -229,20 +255,43 @@ export class NMOSClient {
     /**
      * Patch receiver with sender's SDP
      */
-    async patchReceiver(receiverId, senderId, sdpText, receiverPortCount = 2) {
+    async patchReceiver(receiverId, senderId, sdpText) {
         if (!this.is05BaseUrl) {
             throw new Error('IS-05 endpoint not available');
         }
+
+        // Find correct PATCH path first
+        const paths = await this.testPatchPath(receiverId);
+
+        // Get receiver's current staged parameters (prefer testPatchPath response)
+        let portCount = 2;
+        let staged = null;
+
+        if (paths.currentState && paths.currentState.transport_params) {
+            staged = paths.currentState;
+            portCount = staged.transport_params.length;
+        } else {
+            const stagedResult = await this.getStagedParams(receiverId, paths.stagedPath);
+            portCount = stagedResult.portCount;
+            staged = stagedResult.staged;
+        }
+
+        console.log(`Receiver has ${portCount} transport_params ports`);
 
         // Import SDP parser
         const { SDPParser } = await import('./sdp-parser.js');
         const parser = new SDPParser();
 
-        // Convert SDP to PATCH body
-        const patchBody = parser.parseToJSON(sdpText, senderId, receiverPortCount);
+        // Parse SDP to get available streams (PRIMARY/SECONDARY)
+        const patchBody = parser.parseToJSON(sdpText, senderId, portCount);
 
-        // Find correct PATCH path
-        const paths = await this.testPatchPath(receiverId);
+        // Merge with receiver's existing transport_params to preserve rtp_enabled states
+        if (staged && staged.transport_params) {
+            patchBody.transport_params = this.mergeTransportParams(
+                patchBody.transport_params,
+                staged.transport_params
+            );
+        }
 
         // Send PATCH
         console.log('Sending PATCH:', patchBody);
@@ -260,6 +309,26 @@ export class NMOSClient {
             activeState,
             paths
         };
+    }
+
+    /**
+     * Merge parsed transport_params from SDP with receiver's existing params
+     * Preserves receiver's rtp_enabled state when SDP provides fewer streams than receiver has ports
+     */
+    mergeTransportParams(sdpParams, receiverParams) {
+        const merged = [];
+
+        for (let i = 0; i < receiverParams.length; i++) {
+            if (i < sdpParams.length && sdpParams[i].rtp_enabled) {
+                // Use SDP data for this port
+                merged.push(sdpParams[i]);
+            } else {
+                // Keep receiver's existing config (likely rtp_enabled: false)
+                merged.push(receiverParams[i]);
+            }
+        }
+
+        return merged;
     }
 
     /**
@@ -356,7 +425,7 @@ export class NMOSClient {
     /**
      * PATCH JSON to NMOS API
      */
-    async patchJSON(path, body, baseUrl = null) {
+    async patchJSON(path, body, baseUrl = null, returnBody = false) {
         const url = (baseUrl || this.is05BaseUrl) + path;
 
         try {
@@ -372,6 +441,18 @@ export class NMOSClient {
             if (!response.ok && response.status !== 202) {
                 const errorText = await response.text();
                 throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+            }
+
+            if (returnBody) {
+                const text = await response.text();
+                if (!text) {
+                    return null;
+                }
+                try {
+                    return JSON.parse(text);
+                } catch {
+                    return text;
+                }
             }
 
             // IS-05 may return 200 or 202

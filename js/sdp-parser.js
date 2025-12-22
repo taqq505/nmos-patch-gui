@@ -64,6 +64,20 @@ export class SDPParser {
 
             // m= line: media description with port
             if (trimmed.startsWith('m=')) {
+                // Save previous block with its MID before starting new media section
+                if (currentMid && currentBlock.destination_port && currentBlock.multicast_ip) {
+                    paramBlocks[currentMid] = { ...currentBlock };
+                    currentMid = null; // Reset MID for new section
+                }
+
+                // Start new block
+                currentBlock = {
+                    destination_port: null,
+                    multicast_ip: null,
+                    source_ip: null,
+                    rtp_enabled: true
+                };
+
                 const parts = trimmed.split(/\s+/);
                 if (parts.length >= 2) {
                     currentBlock.destination_port = parseInt(parts[1]);
@@ -87,22 +101,8 @@ export class SDPParser {
             // a=mid: media ID (primary/secondary for ST2110-7)
             else if (trimmed.startsWith('a=mid:')) {
                 const mid = trimmed.split(':')[1].trim().toLowerCase();
-
-                // Save previous block if it has valid data
-                if (currentBlock.destination_port && currentBlock.multicast_ip) {
-                    if (currentMid) {
-                        paramBlocks[currentMid] = { ...currentBlock };
-                    }
-                }
-
-                // Start new block for this mid
                 currentMid = mid;
-                currentBlock = {
-                    destination_port: null,
-                    multicast_ip: null,
-                    source_ip: null,
-                    rtp_enabled: true
-                };
+                // Don't save here - wait for next m= line or end of loop
             }
         }
 

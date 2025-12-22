@@ -5,8 +5,7 @@
 
 const STORAGE_KEYS = {
     NODES: 'nmos_bcc_nodes',
-    HISTORY: 'nmos_bcc_history',
-    SETTINGS: 'nmos_bcc_settings'
+    HISTORY: 'nmos_bcc_history'
 };
 
 export class StorageManager {

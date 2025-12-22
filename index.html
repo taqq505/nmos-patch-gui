@@ -34,12 +34,12 @@
                         </svg>
                         Add Node
                     </button>
-                    <button id="historyBtn" class="btn btn-secondary">
+                    <button id="settingsBtn" class="btn btn-secondary">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polyline points="12 6 12 12 16 14"/>
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
                         </svg>
-                        History
+                        Settings
                     </button>
                 </div>
             </div>
@@ -113,6 +113,7 @@
                 <div class="connection-status">
                     <div class="status-indicator"></div>
                     <span id="statusText">Select sender and receiver</span>
+                    <a id="corsHelpLink" class="status-link hidden" href="#">CORS対処</a>
                 </div>
             </div>
 
@@ -208,7 +209,13 @@
                 <p>Discovering nodes from registry...</p>
             </div>
             <div id="rdsNodeList" class="rds-node-list" style="display: none;">
-                <h3>Available Nodes</h3>
+                <div class="rds-header">
+                    <h3>Available Nodes</h3>
+                    <label class="select-all-label">
+                        <input type="checkbox" id="selectAllNodes" class="select-all-checkbox">
+                        <span>Select All</span>
+                    </label>
+                </div>
                 <div id="rdsNodes"></div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="cancelRdsSelection">Cancel</button>
@@ -220,23 +227,158 @@
                     </button>
                 </div>
             </div>
+            <div id="rdsAddProgress" class="rds-add-progress" style="display: none;">
+                <h3>Adding Nodes...</h3>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="rdsProgressBar"></div>
+                </div>
+                <p id="rdsProgressText">Initializing...</p>
+                <div id="rdsProgressDetails" class="progress-details"></div>
+            </div>
         </div>
     </div>
 
-    <!-- Modal: History -->
-    <div id="historyModal" class="modal">
+    <!-- Modal: Settings -->
+    <div id="settingsModal" class="modal">
         <div class="modal-content modal-large">
             <div class="modal-header">
-                <h2>Patch History</h2>
+                <h2>Settings</h2>
                 <button class="modal-close">&times;</button>
             </div>
-            <div id="historyContent" class="history-list">
-                <div class="empty-state">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                    <p>No patch history</p>
+            <div class="settings-content">
+                <!-- Tabs -->
+                <div class="settings-tabs">
+                    <button class="settings-tab active" data-tab="history">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        Patch History
+                    </button>
+                    <button class="settings-tab" data-tab="reset">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                            <path d="M21 3v5h-5"/>
+                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                            <path d="M3 21v-5h5"/>
+                        </svg>
+                        Reset
+                    </button>
+                    <button class="settings-tab" data-tab="cors">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 8v4"/>
+                            <path d="M12 16h.01"/>
+                        </svg>
+                        CORS
+                    </button>
+                </div>
+
+                <!-- Tab Content: History -->
+                <div id="historyTab" class="settings-tab-content active">
+                    <div id="historyContent" class="history-list">
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            <p>No patch history</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Reset -->
+                <div id="resetTab" class="settings-tab-content">
+                    <div class="reset-section">
+                        <div class="reset-warning">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                            <h3>Reset Application Data</h3>
+                            <p>This will permanently delete all stored data including:</p>
+                            <ul>
+                                <li>All registered NMOS nodes</li>
+                                <li>Patch history</li>
+                                <li>All application settings</li>
+                            </ul>
+                            <p><strong>This action cannot be undone.</strong></p>
+                        </div>
+                        <div class="reset-actions">
+                            <button id="clearHistoryBtn" class="btn btn-secondary">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"/>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                </svg>
+                                Clear History Only
+                            </button>
+                            <button id="resetAllBtn" class="btn btn-danger">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                                    <path d="M21 3v5h-5"/>
+                                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                                    <path d="M3 21v-5h5"/>
+                                </svg>
+                                Reset All Data
+                            </button>
+                        </div>
+                    </div>
+                    <div class="reset-section">
+                        <div class="reset-warning">
+                            <h3>⚠ CORS未対応機器向けの注意</h3>
+                            <p>ブラウザから直接Chromeを起動してCORSを無効化することはできません。下記のコマンドで「開発用途のみ」で起動してください。</p>
+                            <details>
+                                <summary>起動方法を表示</summary>
+                                <pre><code>macOS:
+open -na "Google Chrome" --args --disable-web-security --user-data-dir=/tmp/chrome_dev
+
+Windows:
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --disable-web-security --user-data-dir=%TEMP%\chrome_dev
+
+Linux:
+google-chrome --disable-web-security --user-data-dir=/tmp/chrome_dev</code></pre>
+                            </details>
+                            <p><strong>注意:</strong> このモードは安全ではありません。テスト用途以外で使わないでください。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: CORS -->
+                <div id="corsTab" class="settings-tab-content">
+                    <div class="cors-warning">
+                        <h3>⚠ CORS Workaround (Dev Only)</h3>
+                        <p>Browsers block PATCH requests to devices without proper CORS headers.</p>
+                        <p>If the device cannot be updated, you can launch Chrome in a temporary CORS-disabled mode for testing.</p>
+                        <p><strong>Windows steps:</strong> You can either run the command from the Run dialog (Win+R) or paste it into the Target field of a Chrome shortcut and launch it.</p>
+                        <p><strong>macOS/Linux:</strong> Run the command below from a terminal to launch a separate temporary profile.</p>
+
+                        <div class="cors-command">
+                            <div class="cors-command-header">
+                                <span>Windows</span>
+                                <button class="copy-btn" data-copy="&quot;C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe&quot; --disable-web-security --user-data-dir=%TEMP%\\chrome_dev">Copy</button>
+                            </div>
+                            <pre class="cors-command-body"><code>"C:\Program Files\Google\Chrome\Application\chrome.exe" --disable-web-security --user-data-dir=%TEMP%\chrome_dev</code></pre>
+                        </div>
+
+                        <div class="cors-command">
+                            <div class="cors-command-header">
+                                <span>macOS</span>
+                                <button class="copy-btn" data-copy="open -na &quot;Google Chrome&quot; --args --disable-web-security --user-data-dir=/tmp/chrome_dev">Copy</button>
+                            </div>
+                            <pre class="cors-command-body"><code>open -na "Google Chrome" --args --disable-web-security --user-data-dir=/tmp/chrome_dev</code></pre>
+                        </div>
+
+                        <div class="cors-command">
+                            <div class="cors-command-header">
+                                <span>Linux</span>
+                                <button class="copy-btn" data-copy="google-chrome --disable-web-security --user-data-dir=/tmp/chrome_dev">Copy</button>
+                            </div>
+                            <pre class="cors-command-body"><code>google-chrome --disable-web-security --user-data-dir=/tmp/chrome_dev</code></pre>
+                        </div>
+
+                        <p><strong>Warning:</strong> This mode is unsafe. Use it only for temporary testing.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -244,6 +386,12 @@
 
     <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
+    <div id="corsAlert" class="cors-alert hidden">
+        <div class="cors-alert-content">
+            <span>CORS error — click here</span>
+            <button id="corsAlertClose" class="cors-alert-close" aria-label="Close">&times;</button>
+        </div>
+    </div>
 
     <script type="module" src="js/app.js"></script>
 </body>

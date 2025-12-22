@@ -12,8 +12,8 @@ Lightweight, browser-only NMOS IS-04/IS-05 patching UI for ST 2110 routing.
 NMOS Simple BCC is a minimal, browser-only tool for NMOS-based ST 2110 routing.  
 NMOS IS-04/IS-05 を使った ST 2110 ルーティングを、ブラウザだけで行う軽量ツールです。
 
-## Demo / デモ（GitHub Pages）
-`https://taqq505.github.io/nmos-patch-gui/`
+## 🌐 Live Site
+https://taqq505.github.io/nmos-patch-gui/
 
 ## Features / 特徴
 - Browser-only, no server required / サーバ不要

@@ -9,8 +9,10 @@ import { StorageManager } from './storage.js';
 class BCCApplication {
     constructor() {
         this.storage = new StorageManager();
-        this.currentNode = null;
-        this.currentClient = null;
+        this.senderNode = null;
+        this.senderClient = null;
+        this.receiverNode = null;
+        this.receiverClient = null;
         this.selectedSender = null;
         this.selectedReceiver = null;
 
@@ -30,24 +32,33 @@ class BCCApplication {
      * Setup all event listeners
      */
     setupEventListeners() {
+        // Connect RDS button
+        document.getElementById('connectRdsBtn').addEventListener('click', () => {
+            this.openConnectRdsModal();
+        });
+
         // Add Node button
         document.getElementById('addNodeBtn').addEventListener('click', () => {
             this.openAddNodeModal();
         });
 
-        // Node selector
-        document.getElementById('nodeSelect').addEventListener('change', (e) => {
-            this.selectNode(e.target.value);
+        // Sender node selector
+        document.getElementById('senderNodeSelect').addEventListener('change', (e) => {
+            this.selectSenderNode(e.target.value);
         });
 
-        // Refresh button
-        document.getElementById('refreshBtn').addEventListener('click', () => {
-            this.refreshCurrentNode();
+        // Receiver node selector
+        document.getElementById('receiverNodeSelect').addEventListener('change', (e) => {
+            this.selectReceiverNode(e.target.value);
         });
 
-        // Remove node button
-        document.getElementById('removeNodeBtn').addEventListener('click', () => {
-            this.removeCurrentNode();
+        // Refresh buttons
+        document.getElementById('refreshSenderBtn').addEventListener('click', () => {
+            this.refreshSenderNode();
+        });
+
+        document.getElementById('refreshReceiverBtn').addEventListener('click', () => {
+            this.refreshReceiverNode();
         });
 
         // History button
@@ -61,12 +72,20 @@ class BCCApplication {
         });
 
         // Filter inputs
-        document.getElementById('senderFilter').addEventListener('input', (e) => {
-            this.filterSenders(e.target.value);
+        document.getElementById('senderFilter').addEventListener('input', () => {
+            this.filterSenders();
         });
 
-        document.getElementById('receiverFilter').addEventListener('input', (e) => {
-            this.filterReceivers(e.target.value);
+        document.getElementById('senderFormatFilter').addEventListener('change', () => {
+            this.filterSenders();
+        });
+
+        document.getElementById('receiverFilter').addEventListener('input', () => {
+            this.filterReceivers();
+        });
+
+        document.getElementById('receiverFormatFilter').addEventListener('change', () => {
+            this.filterReceivers();
         });
 
         // Add Node Modal
@@ -97,116 +116,208 @@ class BCCApplication {
     }
 
     /**
-     * Load nodes from storage and populate selector
+     * Load nodes from storage and populate selectors
      */
     loadNodes() {
         const nodes = this.storage.getAllNodes();
-        const select = document.getElementById('nodeSelect');
+        const senderSelect = document.getElementById('senderNodeSelect');
+        const receiverSelect = document.getElementById('receiverNodeSelect');
 
-        select.innerHTML = '';
+        // Clear both selects
+        senderSelect.innerHTML = '<option value="">Select sender node...</option>';
+        receiverSelect.innerHTML = '<option value="">Select receiver node...</option>';
 
         if (nodes.length === 0) {
-            select.innerHTML = '<option value="">No nodes available - Add a node to get started</option>';
             return;
         }
 
+        // Populate both selects with same nodes
         nodes.forEach(node => {
-            const option = document.createElement('option');
-            option.value = node.id;
-            option.textContent = `${node.name} (${node.is04_url})`;
-            select.appendChild(option);
+            const senderOption = document.createElement('option');
+            senderOption.value = node.id;
+            senderOption.textContent = `${node.name} (${node.is04_url})`;
+            senderSelect.appendChild(senderOption);
+
+            const receiverOption = document.createElement('option');
+            receiverOption.value = node.id;
+            receiverOption.textContent = `${node.name} (${node.is04_url})`;
+            receiverSelect.appendChild(receiverOption);
         });
 
-        // Select first node
-        if (nodes.length > 0) {
-            select.value = nodes[0].id;
-            this.selectNode(nodes[0].id);
+        // Auto-select first node for both if only one node exists
+        if (nodes.length === 1) {
+            senderSelect.value = nodes[0].id;
+            receiverSelect.value = nodes[0].id;
+            this.selectSenderNode(nodes[0].id);
+            this.selectReceiverNode(nodes[0].id);
         }
     }
 
     /**
-     * Select and load a node
+     * Select and load sender node
      */
-    async selectNode(nodeId) {
+    async selectSenderNode(nodeId) {
         if (!nodeId) {
-            this.currentNode = null;
-            this.currentClient = null;
-            this.clearLists();
+            this.senderNode = null;
+            this.senderClient = null;
+            this.renderSenders([]);
+            this.selectedSender = null;
+            this.updateTakeButton();
             return;
         }
 
         const node = this.storage.getNode(nodeId);
         if (!node) {
-            this.showToast('Node not found', 'error');
+            this.showToast('Sender node not found', 'error');
             return;
         }
 
-        this.currentNode = node;
+        this.senderNode = node;
 
         try {
             // Create NMOS client
-            this.currentClient = new NMOSClient(node.is04_url);
+            this.senderClient = new NMOSClient(node.is04_url);
 
             // Show loading state
-            this.setLoadingState(true);
+            this.setLoadingState(true, 'sender');
 
             // Initialize client (if not already initialized)
             if (!node.version) {
-                await this.currentClient.initialize();
+                await this.senderClient.initialize();
 
                 // Update node with discovered info
                 this.storage.updateNode(nodeId, {
-                    is05_url: this.currentClient.is05BaseUrl,
-                    version: this.currentClient.version,
-                    is05_version: this.currentClient.is05Version
+                    is05_url: this.senderClient.is05BaseUrl,
+                    version: this.senderClient.version,
+                    is05_version: this.senderClient.is05Version
                 });
             } else {
                 // Use cached info
-                this.currentClient.version = node.version;
-                this.currentClient.is05BaseUrl = node.is05_url;
-                this.currentClient.is05Version = node.is05_version;
+                this.senderClient.version = node.version;
+                this.senderClient.is05BaseUrl = node.is05_url;
+                this.senderClient.is05Version = node.is05_version;
             }
 
-            // Load senders and receivers
-            await this.loadDevices();
+            // Load senders
+            const senders = await this.senderClient.getSenders();
+            this.storage.updateNode(nodeId, { senders });
+            this.senderNode.senders = senders;
+            this.renderSenders(senders);
 
-            this.showToast(`Connected to ${node.name}`, 'success');
+            this.showToast(`Sender node connected: ${node.name}`, 'success');
 
         } catch (error) {
-            console.error('Failed to select node:', error);
-            this.showToast(`Failed to connect: ${error.message}`, 'error');
-            this.clearLists();
+            console.error('Failed to select sender node:', error);
+            this.showToast(`Failed to connect sender node: ${error.message}`, 'error');
+            this.renderSenders([]);
         } finally {
-            this.setLoadingState(false);
+            this.setLoadingState(false, 'sender');
         }
     }
 
     /**
-     * Load senders and receivers from current node
+     * Select and load receiver node
      */
-    async loadDevices() {
-        if (!this.currentClient) return;
+    async selectReceiverNode(nodeId) {
+        if (!nodeId) {
+            this.receiverNode = null;
+            this.receiverClient = null;
+            this.renderReceivers([]);
+            this.selectedReceiver = null;
+            this.updateTakeButton();
+            return;
+        }
+
+        const node = this.storage.getNode(nodeId);
+        if (!node) {
+            this.showToast('Receiver node not found', 'error');
+            return;
+        }
+
+        this.receiverNode = node;
 
         try {
-            const [senders, receivers] = await Promise.all([
-                this.currentClient.getSenders(),
-                this.currentClient.getReceivers()
-            ]);
+            // Create NMOS client
+            this.receiverClient = new NMOSClient(node.is04_url);
 
-            // Update node in storage
-            this.storage.updateNodeDevices(this.currentNode.id, senders, receivers);
+            // Show loading state
+            this.setLoadingState(true, 'receiver');
 
-            // Update current node reference
-            this.currentNode.senders = senders;
-            this.currentNode.receivers = receivers;
+            // Initialize client (if not already initialized)
+            if (!node.version) {
+                await this.receiverClient.initialize();
 
-            // Render lists
-            this.renderSenders(senders);
+                // Update node with discovered info
+                this.storage.updateNode(nodeId, {
+                    is05_url: this.receiverClient.is05BaseUrl,
+                    version: this.receiverClient.version,
+                    is05_version: this.receiverClient.is05Version
+                });
+            } else {
+                // Use cached info
+                this.receiverClient.version = node.version;
+                this.receiverClient.is05BaseUrl = node.is05_url;
+                this.receiverClient.is05Version = node.is05_version;
+            }
+
+            // Load receivers
+            const receivers = await this.receiverClient.getReceivers();
+            this.storage.updateNode(nodeId, { receivers });
+            this.receiverNode.receivers = receivers;
             this.renderReceivers(receivers);
 
+            this.showToast(`Receiver node connected: ${node.name}`, 'success');
+
         } catch (error) {
-            console.error('Failed to load devices:', error);
-            throw error;
+            console.error('Failed to select receiver node:', error);
+            this.showToast(`Failed to connect receiver node: ${error.message}`, 'error');
+            this.renderReceivers([]);
+        } finally {
+            this.setLoadingState(false, 'receiver');
+        }
+    }
+
+    /**
+     * Refresh sender node
+     */
+    async refreshSenderNode() {
+        if (!this.senderNode) return;
+
+        const refreshBtn = document.getElementById('refreshSenderBtn');
+        refreshBtn.disabled = true;
+
+        try {
+            const senders = await this.senderClient.getSenders();
+            this.storage.updateNode(this.senderNode.id, { senders });
+            this.senderNode.senders = senders;
+            this.renderSenders(senders);
+            this.showToast('Senders refreshed', 'success');
+        } catch (error) {
+            this.showToast(`Refresh failed: ${error.message}`, 'error');
+        } finally {
+            refreshBtn.disabled = false;
+        }
+    }
+
+    /**
+     * Refresh receiver node
+     */
+    async refreshReceiverNode() {
+        if (!this.receiverNode) return;
+
+        const refreshBtn = document.getElementById('refreshReceiverBtn');
+        refreshBtn.disabled = true;
+
+        try {
+            const receivers = await this.receiverClient.getReceivers();
+            this.storage.updateNode(this.receiverNode.id, { receivers });
+            this.receiverNode.receivers = receivers;
+            this.renderReceivers(receivers);
+            this.showToast('Receivers refreshed', 'success');
+        } catch (error) {
+            this.showToast(`Refresh failed: ${error.message}`, 'error');
+        } finally {
+            refreshBtn.disabled = false;
         }
     }
 
@@ -230,7 +341,7 @@ class BCCApplication {
         }
 
         listEl.innerHTML = senders.map(sender => `
-            <div class="item" data-id="${sender.id}" data-type="sender">
+            <div class="item" data-id="${sender.id}" data-type="sender" data-format="${sender.format}">
                 <div class="item-label">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="2"/>
@@ -239,7 +350,7 @@ class BCCApplication {
                     ${this.escapeHtml(sender.label)}
                 </div>
                 <div class="item-id">${sender.id}</div>
-                ${sender.format ? `<div class="item-format">${this.escapeHtml(sender.format)}</div>` : ''}
+                ${sender.format ? `<div class="item-format">${this.escapeHtml(sender.format).toUpperCase()}</div>` : ''}
             </div>
         `).join('');
 
@@ -271,7 +382,7 @@ class BCCApplication {
         }
 
         listEl.innerHTML = receivers.map(receiver => `
-            <div class="item" data-id="${receiver.id}" data-type="receiver">
+            <div class="item" data-id="${receiver.id}" data-type="receiver" data-format="${receiver.format}">
                 <div class="item-label">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="2" y="7" width="20" height="14" rx="2"/>
@@ -281,7 +392,7 @@ class BCCApplication {
                     ${this.escapeHtml(receiver.label)}
                 </div>
                 <div class="item-id">${receiver.id}</div>
-                ${receiver.format ? `<div class="item-format">${this.escapeHtml(receiver.format)}</div>` : ''}
+                ${receiver.format ? `<div class="item-format">${this.escapeHtml(receiver.format).toUpperCase()}</div>` : ''}
             </div>
         `).join('');
 
@@ -297,7 +408,9 @@ class BCCApplication {
      * Select a sender
      */
     selectSender(senderId) {
-        const sender = this.currentNode.senders.find(s => s.id === senderId);
+        if (!this.senderNode || !this.senderNode.senders) return;
+
+        const sender = this.senderNode.senders.find(s => s.id === senderId);
         if (!sender) return;
 
         // Update UI
@@ -313,7 +426,9 @@ class BCCApplication {
      * Select a receiver
      */
     selectReceiver(receiverId) {
-        const receiver = this.currentNode.receivers.find(r => r.id === receiverId);
+        if (!this.receiverNode || !this.receiverNode.receivers) return;
+
+        const receiver = this.receiverNode.receivers.find(r => r.id === receiverId);
         if (!receiver) return;
 
         // Update UI
@@ -356,7 +471,7 @@ class BCCApplication {
      * Execute patch operation
      */
     async executePatch() {
-        if (!this.selectedSender || !this.selectedReceiver || !this.currentClient) {
+        if (!this.selectedSender || !this.selectedReceiver || !this.senderClient || !this.receiverClient) {
             return;
         }
 
@@ -372,20 +487,20 @@ class BCCApplication {
             statusContainer.classList.remove('ready');
 
             // Get SDP from sender
-            statusEl.textContent = 'Fetching SDP...';
-            const sdp = await this.currentClient.getSenderSDP(this.selectedSender);
+            statusEl.textContent = 'Fetching SDP from sender...';
+            const sdp = await this.senderClient.getSenderSDP(this.selectedSender);
 
-            // Get receiver port count
+            // Get receiver port count (using receiver's client)
             statusEl.textContent = 'Checking receiver...';
-            const paths = await this.currentClient.testPatchPath(this.selectedReceiver.id);
-            const { portCount } = await this.currentClient.getStagedParams(
+            const paths = await this.receiverClient.testPatchPath(this.selectedReceiver.id);
+            const { portCount } = await this.receiverClient.getStagedParams(
                 this.selectedReceiver.id,
                 paths.stagedPath
             );
 
-            // Execute patch
+            // Execute patch on receiver
             statusEl.textContent = 'Executing patch...';
-            const result = await this.currentClient.patchReceiver(
+            const result = await this.receiverClient.patchReceiver(
                 this.selectedReceiver.id,
                 this.selectedSender.id,
                 sdp,
@@ -394,8 +509,8 @@ class BCCApplication {
 
             // Save to history
             this.storage.addHistory({
-                node_id: this.currentNode.id,
-                node_name: this.currentNode.name,
+                node_id: this.receiverNode.id,
+                node_name: `${this.senderNode.name} → ${this.receiverNode.name}`,
                 sender: this.selectedSender,
                 receiver: this.selectedReceiver,
                 status: 'success',
@@ -418,8 +533,8 @@ class BCCApplication {
 
             // Save to history
             this.storage.addHistory({
-                node_id: this.currentNode.id,
-                node_name: this.currentNode.name,
+                node_id: this.receiverNode.id,
+                node_name: `${this.senderNode.name} → ${this.receiverNode.name}`,
                 sender: this.selectedSender,
                 receiver: this.selectedReceiver,
                 status: 'failed',
@@ -439,68 +554,55 @@ class BCCApplication {
     /**
      * Filter senders
      */
-    filterSenders(query) {
+    filterSenders() {
+        const searchQuery = document.getElementById('senderFilter').value.toLowerCase();
+        const formatFilter = document.getElementById('senderFormatFilter').value.toLowerCase();
         const items = document.querySelectorAll('#senderList .item');
-        const lowerQuery = query.toLowerCase();
 
         items.forEach(item => {
             const label = item.querySelector('.item-label').textContent.toLowerCase();
             const id = item.querySelector('.item-id').textContent.toLowerCase();
-            const match = label.includes(lowerQuery) || id.includes(lowerQuery);
-            item.style.display = match ? 'block' : 'none';
+            const format = item.dataset.format ? item.dataset.format.toLowerCase() : '';
+
+            // Check search query match
+            const searchMatch = !searchQuery ||
+                label.includes(searchQuery) ||
+                id.includes(searchQuery);
+
+            // Check format filter match
+            const formatMatch = !formatFilter || format === formatFilter;
+
+            // Show only if both conditions match
+            item.style.display = (searchMatch && formatMatch) ? 'block' : 'none';
         });
     }
 
     /**
      * Filter receivers
      */
-    filterReceivers(query) {
+    filterReceivers() {
+        const searchQuery = document.getElementById('receiverFilter').value.toLowerCase();
+        const formatFilter = document.getElementById('receiverFormatFilter').value.toLowerCase();
         const items = document.querySelectorAll('#receiverList .item');
-        const lowerQuery = query.toLowerCase();
 
         items.forEach(item => {
             const label = item.querySelector('.item-label').textContent.toLowerCase();
             const id = item.querySelector('.item-id').textContent.toLowerCase();
-            const match = label.includes(lowerQuery) || id.includes(lowerQuery);
-            item.style.display = match ? 'block' : 'none';
+            const format = item.dataset.format ? item.dataset.format.toLowerCase() : '';
+
+            // Check search query match
+            const searchMatch = !searchQuery ||
+                label.includes(searchQuery) ||
+                id.includes(searchQuery);
+
+            // Check format filter match
+            const formatMatch = !formatFilter || format === formatFilter;
+
+            // Show only if both conditions match
+            item.style.display = (searchMatch && formatMatch) ? 'block' : 'none';
         });
     }
 
-    /**
-     * Refresh current node
-     */
-    async refreshCurrentNode() {
-        if (!this.currentNode) return;
-
-        const refreshBtn = document.getElementById('refreshBtn');
-        refreshBtn.disabled = true;
-
-        try {
-            await this.loadDevices();
-            this.showToast('Refreshed successfully', 'success');
-        } catch (error) {
-            this.showToast(`Refresh failed: ${error.message}`, 'error');
-        } finally {
-            refreshBtn.disabled = false;
-        }
-    }
-
-    /**
-     * Remove current node
-     */
-    async removeCurrentNode() {
-        if (!this.currentNode) return;
-
-        if (!confirm(`Remove node "${this.currentNode.name}"?`)) {
-            return;
-        }
-
-        this.storage.removeNode(this.currentNode.id);
-        this.currentNode = null;
-        this.currentClient = null;
-        this.loadNodes();
-        this.showToast('Node removed', 'info');
-    }
 
     /**
      * Open add node modal
@@ -559,10 +661,8 @@ class BCCApplication {
                 receivers
             });
 
-            // Reload nodes and select new one
+            // Reload nodes
             this.loadNodes();
-            document.getElementById('nodeSelect').value = node.id;
-            await this.selectNode(node.id);
 
             this.closeAddNodeModal();
             this.showToast(`Node "${nodeName}" added successfully`, 'success');
@@ -621,27 +721,20 @@ class BCCApplication {
     }
 
     /**
-     * Clear lists
-     */
-    clearLists() {
-        this.renderSenders([]);
-        this.renderReceivers([]);
-        this.selectedSender = null;
-        this.selectedReceiver = null;
-        this.updateTakeButton();
-    }
-
-    /**
      * Set loading state
      */
-    setLoadingState(loading) {
+    setLoadingState(loading, type = 'both') {
         const senderList = document.getElementById('senderList');
         const receiverList = document.getElementById('receiverList');
+        const spinner = '<div class="empty-state"><div class="spinner"></div><p>Loading...</p></div>';
 
         if (loading) {
-            const spinner = '<div class="empty-state"><div class="spinner"></div><p>Loading...</p></div>';
-            senderList.innerHTML = spinner;
-            receiverList.innerHTML = spinner;
+            if (type === 'sender' || type === 'both') {
+                senderList.innerHTML = spinner;
+            }
+            if (type === 'receiver' || type === 'both') {
+                receiverList.innerHTML = spinner;
+            }
         }
     }
 

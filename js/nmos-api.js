@@ -107,16 +107,36 @@ export class NMOSClient {
      */
     async getSenders() {
         const senders = await this.fetchJSON(`/x-nmos/node/${this.version}/senders/`);
-        return senders.map(s => ({
-            id: s.id,
-            label: s.label || s.id,
-            description: s.description || '',
-            format: s.flow_id ? 'video/audio' : 'unknown',
-            manifest_href: s.manifest_href,
-            device_id: s.device_id,
-            flow_id: s.flow_id,
-            transport: s.transport
-        }));
+
+        // Get all flows to resolve formats
+        const flows = await this.fetchJSON(`/x-nmos/node/${this.version}/flows/`);
+        const flowMap = new Map(flows.map(f => [f.id, f]));
+
+        return senders.map(s => {
+            let format = 'unknown';
+
+            if (s.flow_id && flowMap.has(s.flow_id)) {
+                const flow = flowMap.get(s.flow_id);
+                // Parse NMOS format URN
+                if (flow.format) {
+                    const formatMatch = flow.format.match(/urn:x-nmos:format:(\w+)/);
+                    if (formatMatch) {
+                        format = formatMatch[1]; // video, audio, data, mux
+                    }
+                }
+            }
+
+            return {
+                id: s.id,
+                label: s.label || s.id,
+                description: s.description || '',
+                format: format,
+                manifest_href: s.manifest_href,
+                device_id: s.device_id,
+                flow_id: s.flow_id,
+                transport: s.transport
+            };
+        });
     }
 
     /**
@@ -124,15 +144,28 @@ export class NMOSClient {
      */
     async getReceivers() {
         const receivers = await this.fetchJSON(`/x-nmos/node/${this.version}/receivers/`);
-        return receivers.map(r => ({
-            id: r.id,
-            label: r.label || r.id,
-            description: r.description || '',
-            format: r.format || 'unknown',
-            device_id: r.device_id,
-            transport: r.transport,
-            caps: r.caps
-        }));
+
+        return receivers.map(r => {
+            let format = 'unknown';
+
+            // Parse NMOS format URN
+            if (r.format) {
+                const formatMatch = r.format.match(/urn:x-nmos:format:(\w+)/);
+                if (formatMatch) {
+                    format = formatMatch[1]; // video, audio, data, mux
+                }
+            }
+
+            return {
+                id: r.id,
+                label: r.label || r.id,
+                description: r.description || '',
+                format: format,
+                device_id: r.device_id,
+                transport: r.transport,
+                caps: r.caps
+            };
+        });
     }
 
     /**
@@ -227,6 +260,70 @@ export class NMOSClient {
             activeState,
             paths
         };
+    }
+
+    /**
+     * Discover nodes from RDS (Registry & Discovery System)
+     * @param {string} queryApiUrl - IS-04 Query API URL
+     */
+    static async discoverFromRDS(queryApiUrl) {
+        const baseUrl = queryApiUrl.replace(/\/$/, '');
+
+        try {
+            // Get Query API version
+            const versionsResponse = await fetch(`${baseUrl}/x-nmos/query/`);
+            if (!versionsResponse.ok) {
+                throw new Error(`Failed to connect to Registry: ${versionsResponse.status}`);
+            }
+
+            const versions = await versionsResponse.json();
+            const version = versions.sort().reverse()[0].replace(/\//g, '');
+
+            // Get all nodes from registry
+            const nodesResponse = await fetch(`${baseUrl}/x-nmos/query/${version}/nodes/`);
+            if (!nodesResponse.ok) {
+                throw new Error(`Failed to fetch nodes: ${nodesResponse.status}`);
+            }
+
+            const nodes = await nodesResponse.json();
+
+            // Parse nodes and extract IS-04 endpoints
+            return nodes.map(node => {
+                // Find Node API endpoint
+                let nodeApiUrl = null;
+
+                if (node.services && node.services.length > 0) {
+                    const nodeService = node.services.find(s =>
+                        s.type && s.type.includes('node')
+                    );
+                    if (nodeService && nodeService.href) {
+                        nodeApiUrl = nodeService.href.replace(/\/$/, '');
+                    }
+                }
+
+                // Fallback: construct from node's API endpoints
+                if (!nodeApiUrl && node.api && node.api.endpoints && node.api.endpoints.length > 0) {
+                    const endpoint = node.api.endpoints[0];
+                    const protocol = endpoint.protocol || 'http';
+                    const host = endpoint.host;
+                    const port = endpoint.port || 80;
+                    nodeApiUrl = `${protocol}://${host}:${port}`;
+                }
+
+                return {
+                    id: node.id,
+                    label: node.label || node.id,
+                    description: node.description || '',
+                    hostname: node.hostname || '',
+                    is04_url: nodeApiUrl,
+                    version: node.version || null,
+                    raw: node
+                };
+            }).filter(n => n.is04_url); // Only include nodes with valid IS-04 URL
+        } catch (error) {
+            console.error('RDS discovery failed:', error);
+            throw new Error(`Registry connection failed: ${error.message}`);
+        }
     }
 
     /**

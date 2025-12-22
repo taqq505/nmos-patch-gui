@@ -19,7 +19,14 @@
                     <h1>ST2110 BCC</h1>
                 </div>
                 <div class="header-actions">
-                    <button id="addNodeBtn" class="btn btn-primary">
+                    <button id="connectRdsBtn" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
+                        </svg>
+                        Connect RDS
+                    </button>
+                    <button id="addNodeBtn" class="btn btn-secondary">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10"/>
                             <line x1="12" y1="8" x2="12" y2="16"/>
@@ -38,25 +45,32 @@
             </div>
         </header>
 
-        <!-- Node Selector -->
-        <div class="node-selector">
-            <label for="nodeSelect">Active Node:</label>
-            <select id="nodeSelect" class="node-select">
-                <option value="">No nodes available - Add a node to get started</option>
-            </select>
-            <button id="refreshBtn" class="btn-icon" title="Refresh">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="23 4 23 10 17 10"/>
-                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-                </svg>
-            </button>
-            <button id="removeNodeBtn" class="btn-icon btn-danger" title="Remove Node">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="15" y1="9" x2="9" y2="15"/>
-                    <line x1="9" y1="9" x2="15" y2="15"/>
-                </svg>
-            </button>
+        <!-- Node Selectors -->
+        <div class="node-selectors">
+            <div class="node-selector">
+                <label for="senderNodeSelect">Sender Node:</label>
+                <select id="senderNodeSelect" class="node-select">
+                    <option value="">Select sender node...</option>
+                </select>
+                <button id="refreshSenderBtn" class="btn-icon" title="Refresh Senders">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"/>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="node-selector">
+                <label for="receiverNodeSelect">Receiver Node:</label>
+                <select id="receiverNodeSelect" class="node-select">
+                    <option value="">Select receiver node...</option>
+                </select>
+                <button id="refreshReceiverBtn" class="btn-icon" title="Refresh Receivers">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"/>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                    </svg>
+                </button>
+            </div>
         </div>
 
         <!-- Main Control Panel -->
@@ -65,7 +79,16 @@
             <div class="panel senders-panel">
                 <div class="panel-header">
                     <h2>Senders</h2>
-                    <input type="text" id="senderFilter" class="filter-input" placeholder="Filter senders...">
+                    <div class="filter-group">
+                        <input type="text" id="senderFilter" class="filter-input" placeholder="Search senders...">
+                        <select id="senderFormatFilter" class="format-filter">
+                            <option value="">All Formats</option>
+                            <option value="video">Video</option>
+                            <option value="audio">Audio</option>
+                            <option value="data">Data</option>
+                            <option value="mux">Mux</option>
+                        </select>
+                    </div>
                 </div>
                 <div id="senderList" class="item-list">
                     <div class="empty-state">
@@ -97,7 +120,16 @@
             <div class="panel receivers-panel">
                 <div class="panel-header">
                     <h2>Receivers</h2>
-                    <input type="text" id="receiverFilter" class="filter-input" placeholder="Filter receivers...">
+                    <div class="filter-group">
+                        <input type="text" id="receiverFilter" class="filter-input" placeholder="Search receivers...">
+                        <select id="receiverFormatFilter" class="format-filter">
+                            <option value="">All Formats</option>
+                            <option value="video">Video</option>
+                            <option value="audio">Audio</option>
+                            <option value="data">Data</option>
+                            <option value="mux">Mux</option>
+                        </select>
+                    </div>
                 </div>
                 <div id="receiverList" class="item-list">
                     <div class="empty-state">
@@ -143,6 +175,50 @@
             <div id="addNodeProgress" class="progress-container" style="display: none;">
                 <div class="spinner"></div>
                 <p>Discovering NMOS node...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Connect RDS -->
+    <div id="connectRdsModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Connect to NMOS Registry (RDS)</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <form id="connectRdsForm" style="display: block;">
+                <div class="form-group">
+                    <label for="rdsUrl">Registry Query API URL</label>
+                    <input type="url" id="rdsUrl" name="rdsUrl" placeholder="http://192.168.1.100:3001" required>
+                    <small>Enter the NMOS IS-04 Query API URL (typically port 3001)</small>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelConnectRds">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M12 1v6m0 6v6"/>
+                        </svg>
+                        Discover Nodes
+                    </button>
+                </div>
+            </form>
+            <div id="rdsProgress" class="progress-container" style="display: none;">
+                <div class="spinner"></div>
+                <p>Discovering nodes from registry...</p>
+            </div>
+            <div id="rdsNodeList" class="rds-node-list" style="display: none;">
+                <h3>Available Nodes</h3>
+                <div id="rdsNodes"></div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelRdsSelection">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="addSelectedNodes">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        Add Selected Nodes
+                    </button>
+                </div>
             </div>
         </div>
     </div>

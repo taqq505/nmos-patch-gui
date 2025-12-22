@@ -41,6 +41,14 @@
                         </svg>
                         Settings
                     </button>
+                    <button id="aboutBtn" class="btn btn-secondary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 8v4"/>
+                            <path d="M12 16h.01"/>
+                        </svg>
+                        About
+                    </button>
                 </div>
             </div>
         </header>
@@ -272,6 +280,14 @@
                         </svg>
                         CORS
                     </button>
+                    <button class="settings-tab" data-tab="about">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2l10 6v8l-10 6-10-6V8l10-6z"/>
+                            <path d="M12 22V12"/>
+                            <path d="M22 8L12 12 2 8"/>
+                        </svg>
+                        About
+                    </button>
                 </div>
 
                 <!-- Tab Content: History -->
@@ -324,24 +340,6 @@
                             </button>
                         </div>
                     </div>
-                    <div class="reset-section">
-                        <div class="reset-warning">
-                            <h3>⚠ CORS未対応機器向けの注意</h3>
-                            <p>ブラウザから直接Chromeを起動してCORSを無効化することはできません。下記のコマンドで「開発用途のみ」で起動してください。</p>
-                            <details>
-                                <summary>起動方法を表示</summary>
-                                <pre><code>macOS:
-open -na "Google Chrome" --args --disable-web-security --user-data-dir=/tmp/chrome_dev
-
-Windows:
-"C:\Program Files\Google\Chrome\Application\chrome.exe" --disable-web-security --user-data-dir=%TEMP%\chrome_dev
-
-Linux:
-google-chrome --disable-web-security --user-data-dir=/tmp/chrome_dev</code></pre>
-                            </details>
-                            <p><strong>注意:</strong> このモードは安全ではありません。テスト用途以外で使わないでください。</p>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- Tab Content: CORS -->
@@ -378,6 +376,18 @@ google-chrome --disable-web-security --user-data-dir=/tmp/chrome_dev</code></pre
                         </div>
 
                         <p><strong>Warning:</strong> This mode is unsafe. Use it only for temporary testing.</p>
+                    </div>
+                </div>
+
+                <!-- Tab Content: About -->
+                <div id="aboutTab" class="settings-tab-content">
+                    <div class="about-section">
+                        <h3>About NMOS Simple BCC</h3>
+                        <p>A lightweight, browser-only NMOS IS-04/IS-05 patching tool for ST 2110 routing.</p>
+                        <p><strong>Project:</strong> <a href="https://github.com/YOUR-USERNAME/nmos-patch-gui" target="_blank" rel="noopener">https://github.com/YOUR-USERNAME/nmos-patch-gui</a></p>
+                        <p><strong>License:</strong> MIT License (see LICENSE)</p>
+                        <p><strong>Rights:</strong> © 2024. All rights reserved. Permissions granted under the MIT License.</p>
+                        <p><strong>Credits:</strong> NMOS IS-04/IS-05 specifications by AMWA.</p>
                     </div>
                 </div>
             </div>

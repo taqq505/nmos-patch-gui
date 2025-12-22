@@ -1005,6 +1005,31 @@ body {
     margin-bottom: 12px;
 }
 
+/* About */
+.about-section {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.about-section h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+}
+
+.about-section p {
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    line-height: 1.6;
+}
+
+.about-section a {
+    color: var(--accent-primary);
+}
+
 .cors-command {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);

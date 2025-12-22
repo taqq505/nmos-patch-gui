@@ -67,6 +67,11 @@ class BCCApplication {
             this.openSettingsModal();
         });
 
+        // About button
+        document.getElementById('aboutBtn').addEventListener('click', () => {
+            this.openSettingsModal('about');
+        });
+
         // TAKE button
         document.getElementById('takeBtn').addEventListener('click', () => {
             this.executePatch();

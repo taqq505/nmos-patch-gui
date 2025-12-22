@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ST2110 BCC - Broadcast Control Center</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7v10c0 5 10 7 10 7s10-2 10-7V7L12 2z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <h1>ST2110 BCC</h1>
+                </div>
+                <div class="header-actions">
+                    <button id="addNodeBtn" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="16"/>
+                            <line x1="8" y1="12" x2="16" y2="12"/>
+                        </svg>
+                        Add Node
+                    </button>
+                    <button id="historyBtn" class="btn btn-secondary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        History
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Node Selector -->
+        <div class="node-selector">
+            <label for="nodeSelect">Active Node:</label>
+            <select id="nodeSelect" class="node-select">
+                <option value="">No nodes available - Add a node to get started</option>
+            </select>
+            <button id="refreshBtn" class="btn-icon" title="Refresh">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="23 4 23 10 17 10"/>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+            </button>
+            <button id="removeNodeBtn" class="btn-icon btn-danger" title="Remove Node">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Main Control Panel -->
+        <div class="control-panel">
+            <!-- Senders Panel -->
+            <div class="panel senders-panel">
+                <div class="panel-header">
+                    <h2>Senders</h2>
+                    <input type="text" id="senderFilter" class="filter-input" placeholder="Filter senders...">
+                </div>
+                <div id="senderList" class="item-list">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="7" width="20" height="14" rx="2"/>
+                            <path d="M16 3h4v4M8 3H4v4"/>
+                        </svg>
+                        <p>No senders available</p>
+                        <small>Add a node with IS-04 URL</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAKE Button -->
+            <div class="take-button-container">
+                <button id="takeBtn" class="take-button" disabled>
+                    <svg class="take-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                    <span>TAKE</span>
+                </button>
+                <div class="connection-status">
+                    <div class="status-indicator"></div>
+                    <span id="statusText">Select sender and receiver</span>
+                </div>
+            </div>
+
+            <!-- Receivers Panel -->
+            <div class="panel receivers-panel">
+                <div class="panel-header">
+                    <h2>Receivers</h2>
+                    <input type="text" id="receiverFilter" class="filter-input" placeholder="Filter receivers...">
+                </div>
+                <div id="receiverList" class="item-list">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="7" width="20" height="14" rx="2"/>
+                            <path d="M16 21v-2M8 21v-2"/>
+                        </svg>
+                        <p>No receivers available</p>
+                        <small>Add a node with IS-04 URL</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add Node -->
+    <div id="addNodeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add NMOS Node</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <form id="addNodeForm">
+                <div class="form-group">
+                    <label for="nodeName">Node Name</label>
+                    <input type="text" id="nodeName" name="nodeName" placeholder="Studio A Camera" required>
+                </div>
+                <div class="form-group">
+                    <label for="is04Url">IS-04 URL</label>
+                    <input type="url" id="is04Url" name="is04Url" placeholder="http://192.168.1.10:3000" required>
+                    <small>Enter the NMOS IS-04 Node API URL. IS-05 will be auto-discovered.</small>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelAddNode">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        Add Node
+                    </button>
+                </div>
+            </form>
+            <div id="addNodeProgress" class="progress-container" style="display: none;">
+                <div class="spinner"></div>
+                <p>Discovering NMOS node...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: History -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Patch History</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div id="historyContent" class="history-list">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <p>No patch history</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

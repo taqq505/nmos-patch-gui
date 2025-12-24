@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ST2110 BCC - Broadcast Control Center</title>
     <link rel="stylesheet" href="css/style.css">
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MCNDPMHMNN"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-MCNDPMHMNN');
+    </script>
 </head>
 <body>
     <div class="app-container">
@@ -428,10 +438,62 @@
                             </li>
                         </ul>
 
-                        <h4>License & Credits</h4>
-                        <p><strong>License:</strong> MIT License (see LICENSE)</p>
-                        <p><strong>Rights:</strong> © 2024. All rights reserved. Permissions granted under the MIT License.</p>
-                        <p><strong>Credits:</strong> NMOS IS-04/IS-05 specifications by AMWA.</p>
+                        <!-- Accordion: Privacy Policy -->
+                        <div class="accordion-item">
+                            <button class="accordion-header" data-accordion="privacy">
+                                <svg class="accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 18l6-6-6-6"/>
+                                </svg>
+                                <span>Privacy Policy</span>
+                            </button>
+                            <div class="accordion-content" id="accordion-privacy">
+                                <div class="privacy-content">
+                                    <h5>Information Collection and Use</h5>
+                                    <p>This tool is a browser-only application. All data is stored locally in your browser's localStorage and is never transmitted to external servers except as described below.</p>
+
+                                    <h5>Cookies and Analytics</h5>
+                                    <p>We use Google Analytics to understand how visitors use this tool. Google Analytics uses cookies to collect anonymous information including:</p>
+                                    <ul>
+                                        <li>Pages visited and time spent on the site</li>
+                                        <li>Browser type and device information</li>
+                                        <li>Approximate geographic location (country/city level)</li>
+                                    </ul>
+                                    <p>This data helps us improve the tool. No personally identifiable information is collected.</p>
+
+                                    <h5>Third-Party Services</h5>
+                                    <p>This site may use Google AdSense to display advertisements. Google may use cookies to serve ads based on your prior visits to this or other websites. You can opt out of personalized advertising by visiting <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener">Google's Ads Settings</a>.</p>
+
+                                    <h5>Your Rights</h5>
+                                    <p>You can:</p>
+                                    <ul>
+                                        <li>Decline cookies via the banner when you first visit</li>
+                                        <li>Clear all locally stored data via Settings → Reset</li>
+                                        <li>Disable cookies in your browser settings</li>
+                                        <li>Opt out of Google Analytics by installing the <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">Google Analytics Opt-out Browser Add-on</a></li>
+                                    </ul>
+
+                                    <h5>Contact</h5>
+                                    <p>Questions about this privacy policy? Contact via <a href="https://github.com/taqq505" target="_blank" rel="noopener">GitHub</a>.</p>
+
+                                    <p class="privacy-updated"><small>Last updated: December 24, 2024</small></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Accordion: License & Credits -->
+                        <div class="accordion-item">
+                            <button class="accordion-header" data-accordion="license">
+                                <svg class="accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 18l6-6-6-6"/>
+                                </svg>
+                                <span>License & Credits</span>
+                            </button>
+                            <div class="accordion-content" id="accordion-license">
+                                <p><strong>License:</strong> MIT License (see LICENSE)</p>
+                                <p><strong>Rights:</strong> © 2024. All rights reserved. Permissions granted under the MIT License.</p>
+                                <p><strong>Credits:</strong> NMOS IS-04/IS-05 specifications by AMWA.</p>
+                            </div>
+                        </div>
 
                         <div class="support-section">
                             <p class="support-text">If this tool helped your workflow, consider buying me a coffee ☕</p>
@@ -454,6 +516,28 @@
         <div class="cors-alert-content">
             <span>CORS error — click here</span>
             <button id="corsAlertClose" class="cors-alert-close" aria-label="Close">&times;</button>
+        </div>
+    </div>
+
+    <!-- Cookie Consent Banner -->
+    <div id="cookieConsent" class="cookie-consent hidden">
+        <div class="cookie-consent-content">
+            <svg class="cookie-icon" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="12" r="10"/>
+                <circle cx="8" cy="10" r="1.5" fill="#1a1a2e"/>
+                <circle cx="16" cy="10" r="1.5" fill="#1a1a2e"/>
+                <circle cx="10" cy="15" r="1.5" fill="#1a1a2e"/>
+                <circle cx="15" cy="14" r="1.5" fill="#1a1a2e"/>
+                <circle cx="12" cy="7" r="1" fill="#1a1a2e"/>
+            </svg>
+            <div class="cookie-text">
+                <p>We use cookies to improve your experience and analyze site usage. By continuing, you accept our use of cookies.</p>
+                <a href="#privacy" class="cookie-learn-more" id="cookieLearnMore">Learn more</a>
+            </div>
+            <div class="cookie-buttons">
+                <button id="cookieDecline" class="btn-cookie btn-cookie-decline">Decline</button>
+                <button id="cookieAccept" class="btn-cookie btn-cookie-accept">Accept</button>
+            </div>
         </div>
     </div>
 

@@ -27,6 +27,7 @@ class BCCApplication {
         this.setupEventListeners();
         this.loadNodes();
         this.showWelcomeIfNeeded();
+        this.checkCookieConsent();
     }
 
     /**
@@ -192,6 +193,41 @@ class BCCApplication {
                 if (e.target === modal) {
                     modal.classList.remove('active');
                 }
+            });
+        });
+
+        // Cookie consent buttons
+        document.getElementById('cookieAccept').addEventListener('click', () => {
+            this.handleCookieConsent(true);
+        });
+
+        document.getElementById('cookieDecline').addEventListener('click', () => {
+            this.handleCookieConsent(false);
+        });
+
+        document.getElementById('cookieLearnMore').addEventListener('click', (e) => {
+            e.preventDefault();
+            this.hideCookieBanner();
+            this.openSettingsModal('about');
+            // Expand privacy accordion and scroll to it
+            setTimeout(() => {
+                const privacyAccordion = document.querySelector('[data-accordion="privacy"]');
+                if (privacyAccordion && !privacyAccordion.classList.contains('active')) {
+                    privacyAccordion.click();
+                }
+                setTimeout(() => {
+                    const privacyItem = privacyAccordion?.closest('.accordion-item');
+                    if (privacyItem) {
+                        privacyItem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 100);
+            }, 300);
+        });
+
+        // Accordion toggles
+        document.querySelectorAll('.accordion-header').forEach(header => {
+            header.addEventListener('click', () => {
+                this.toggleAccordion(header);
             });
         });
     }
@@ -1257,6 +1293,101 @@ class BCCApplication {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    /**
+     * Check if cookie consent has been given
+     */
+    checkCookieConsent() {
+        const consent = localStorage.getItem('cookieConsent');
+        if (consent === null) {
+            // No consent decision yet, show banner
+            this.showCookieBanner();
+        } else if (consent === 'true') {
+            // User accepted cookies, initialize analytics
+            this.initializeAnalytics();
+        }
+        // If consent === 'false', do nothing (no analytics)
+    }
+
+    /**
+     * Show cookie consent banner
+     */
+    showCookieBanner() {
+        const banner = document.getElementById('cookieConsent');
+        banner.classList.remove('hidden');
+    }
+
+    /**
+     * Hide cookie consent banner
+     */
+    hideCookieBanner() {
+        const banner = document.getElementById('cookieConsent');
+        banner.classList.add('hidden');
+    }
+
+    /**
+     * Handle cookie consent decision
+     */
+    handleCookieConsent(accepted) {
+        localStorage.setItem('cookieConsent', accepted.toString());
+        this.hideCookieBanner();
+
+        if (accepted) {
+            this.initializeAnalytics();
+            this.showToast('Cookies accepted. Thank you!', 'success');
+        } else {
+            this.showToast('Cookie preferences saved', 'info');
+        }
+    }
+
+    /**
+     * Initialize Google Analytics (placeholder)
+     * TODO: Uncomment when GA tracking ID is provided
+     */
+    initializeAnalytics() {
+        // Placeholder for Google Analytics initialization
+        // When you have your tracking ID, uncomment the GA script in index.html
+        // and this function will automatically start tracking
+
+        console.log('Analytics would be initialized here with user consent');
+
+        // Example of how to track custom events:
+        // if (typeof gtag !== 'undefined') {
+        //     gtag('event', 'app_loaded', {
+        //         'event_category': 'engagement'
+        //     });
+        // }
+    }
+
+    /**
+     * Toggle accordion section
+     */
+    toggleAccordion(header) {
+        const accordionId = header.dataset.accordion;
+        const content = document.getElementById(`accordion-${accordionId}`);
+        const isActive = header.classList.contains('active');
+
+        // Close all other accordions
+        document.querySelectorAll('.accordion-header').forEach(h => {
+            if (h !== header) {
+                h.classList.remove('active');
+                const otherId = h.dataset.accordion;
+                const otherContent = document.getElementById(`accordion-${otherId}`);
+                if (otherContent) {
+                    otherContent.classList.remove('active');
+                }
+            }
+        });
+
+        // Toggle current accordion
+        if (isActive) {
+            header.classList.remove('active');
+            content.classList.remove('active');
+        } else {
+            header.classList.add('active');
+            content.classList.add('active');
+        }
     }
 }
 

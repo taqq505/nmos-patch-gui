@@ -1020,14 +1020,136 @@ body {
     color: var(--text-primary);
 }
 
+.about-section h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 24px;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+}
+
 .about-section p {
     color: var(--text-secondary);
     margin-bottom: 12px;
     line-height: 1.6;
 }
 
+.about-section ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 16px 0;
+}
+
+.about-section ul li {
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    line-height: 1.6;
+    padding-left: 0;
+}
+
+.about-links li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.about-links li:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--accent-primary);
+    transform: translateX(4px);
+}
+
+.link-icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    opacity: 0.8;
+}
+
+.github-icon {
+    color: var(--accent-primary);
+}
+
+.user-icon {
+    color: var(--accent-secondary);
+}
+
+.globe-icon {
+    color: #00e5ff;
+}
+
+.external-icon {
+    width: 14px;
+    height: 14px;
+    margin-left: 4px;
+    opacity: 0.6;
+    vertical-align: middle;
+    transition: opacity 0.2s ease;
+}
+
 .about-section a {
     color: var(--accent-primary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+}
+
+.about-section a:hover {
+    color: var(--accent-secondary);
+}
+
+.about-section a:hover .external-icon {
+    opacity: 1;
+}
+
+/* Support Section */
+.support-section {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.support-text {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 16px;
+    font-style: italic;
+}
+
+.support-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #0070ba, #1ab7ea);
+    color: white !important;
+    border-radius: 24px;
+    font-weight: 600;
+    text-decoration: none !important;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 112, 186, 0.3);
+}
+
+.support-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 112, 186, 0.5);
+    background: linear-gradient(135deg, #005ea6, #1ab7ea);
+}
+
+.paypal-icon {
+    width: 20px;
+    height: 20px;
+    color: white;
 }
 
 .cors-command {

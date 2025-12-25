@@ -290,6 +290,14 @@
                         </svg>
                         CORS
                     </button>
+                    <button class="settings-tab" data-tab="howitworks">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        How It Works
+                    </button>
                     <button class="settings-tab" data-tab="about">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 2l10 6v8l-10 6-10-6V8l10-6z"/>
@@ -389,6 +397,70 @@
                     </div>
                 </div>
 
+                <!-- Tab Content: How It Works -->
+                <div id="howitworksTab" class="settings-tab-content">
+                    <div class="how-it-works">
+                        <h3>How It Works</h3>
+                        <div class="feature-list">
+                            <div class="feature-item feature-highlight">
+                                <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <div>
+                                    <strong>Browser-Only</strong>
+                                    <p>No installation required. Runs entirely in your web browser using pure JavaScript.</p>
+                                </div>
+                            </div>
+                            <div class="feature-item feature-highlight">
+                                <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <div>
+                                    <strong>Local Processing</strong>
+                                    <p>All data stored locally in localStorage. No external servers or data transmission.</p>
+                                </div>
+                            </div>
+                            <div class="feature-item feature-warning">
+                                <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                    <line x1="12" y1="9" x2="12" y2="13"/>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
+                                <div>
+                                    <strong>Network Requirement</strong>
+                                    <p>Your browser must have network access to NMOS nodes (IS-04/IS-05 endpoints).</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="architecture-diagram">
+                            <div class="arch-node">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                    <path d="M3 9h18M9 21V9"/>
+                                </svg>
+                                <span>Your Browser</span>
+                            </div>
+                            <div class="arch-arrow">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="5" y1="12" x2="19" y2="12"/>
+                                    <polyline points="12 5 19 12 12 19"/>
+                                </svg>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="19" y1="12" x2="5" y2="12"/>
+                                    <polyline points="12 5 5 12 12 19"/>
+                                </svg>
+                            </div>
+                            <div class="arch-node">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="3"/>
+                                    <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
+                                </svg>
+                                <span>NMOS Nodes</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Tab Content: About -->
                 <div id="aboutTab" class="settings-tab-content">
                     <div class="about-section">
@@ -404,6 +476,13 @@
                                 <strong>This Project:</strong>
                                 <a href="https://github.com/taqq505/nmos-patch-gui" target="_blank" rel="noopener">
                                     GitHub Repository
+                                    <svg class="external-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/>
+                                    </svg>
+                                </a>
+                                /
+                                <a href="https://github.com/taqq505/nmos-patch-gui/issues" target="_blank" rel="noopener">
+                                    Issues
                                     <svg class="external-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/>
                                     </svg>

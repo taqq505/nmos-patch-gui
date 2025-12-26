@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="NMOS Simple BCC icon">
+  <defs>
+    <linearGradient id="bccGradient" x1="96" y1="80" x2="416" y2="448" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4ee7ff"/>
+      <stop offset="0.5" stop-color="#00c4ff"/>
+      <stop offset="1" stop-color="#2f6bff"/>
+    </linearGradient>
+  </defs>
+  <rect x="88" y="88" width="336" height="336" rx="72"
+        fill="none"
+        stroke="url(#bccGradient)"
+        stroke-width="24"/>
+  <g stroke="url(#bccGradient)" stroke-width="18" stroke-linecap="round">
+    <line x1="182" y1="214" x2="256" y2="256"/>
+    <line x1="330" y1="214" x2="256" y2="256"/>
+    <line x1="256" y1="256" x2="256" y2="330"/>
+  </g>
+  <g fill="url(#bccGradient)">
+    <circle cx="182" cy="214" r="20"/>
+    <circle cx="330" cy="214" r="20"/>
+    <circle cx="256" cy="330" r="22"/>
+  </g>
+</svg>

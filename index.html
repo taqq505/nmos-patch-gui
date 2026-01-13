@@ -104,6 +104,12 @@
                             <option value="data">Data</option>
                             <option value="mux">Mux</option>
                         </select>
+                        <button id="refreshSendersBtn" class="btn-icon" title="Refresh sender connections">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 4 23 10 17 10"/>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
                 <div id="senderList" class="item-list">
@@ -146,6 +152,12 @@
                             <option value="data">Data</option>
                             <option value="mux">Mux</option>
                         </select>
+                        <button id="refreshReceiversBtn" class="btn-icon" title="Refresh receiver connections">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 4 23 10 17 10"/>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
                 <div id="receiverList" class="item-list">
@@ -178,6 +190,7 @@
                     <label for="is04Url">IS-04 URL</label>
                     <input type="url" id="is04Url" name="is04Url" placeholder="http://192.168.1.10:3000" required>
                     <small>Enter the NMOS IS-04 Node API URL. IS-05 will be auto-discovered.</small>
+                    <!-- <small class="port-helper">Don't know the port number? Try <a href="https://taqq505.github.io/nmos-port-explorer-gui/" target="_blank" rel="noopener">Port Explorer</a></small> -->
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="cancelAddNode">Cancel</button>
@@ -208,6 +221,7 @@
                     <label for="rdsUrl">Registry Query API URL</label>
                     <input type="url" id="rdsUrl" name="rdsUrl" placeholder="http://192.168.1.100:3001" required>
                     <small>Enter the NMOS IS-04 Query API URL </small>
+                    <!-- <small class="port-helper">Don't know the port number? Try <a href="https://taqq505.github.io/nmos-port-explorer-gui/" target="_blank" rel="noopener">Port Explorer</a></small> -->
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="cancelConnectRds">Cancel</button>
@@ -583,6 +597,27 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enable/Disable Warning Modal -->
+    <div id="enableWarningModal" class="modal hidden">
+        <div class="modal-content warning-modal">
+            <div class="modal-header warning-header">
+                <svg class="warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <h2 id="warningModalTitle">Enable/Disable Warning</h2>
+            </div>
+            <div class="modal-body warning-body">
+                <div id="warningModalContent"></div>
+            </div>
+            <div class="form-actions">
+                <button id="warningCancel" class="btn btn-secondary">Cancel</button>
+                <button id="warningConfirm" class="btn btn-danger">I Understand, Proceed</button>
             </div>
         </div>
     </div>

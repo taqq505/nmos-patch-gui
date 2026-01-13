@@ -17,6 +17,10 @@ class BCCApplication {
         this.selectedReceiver = null;
         this.discoveredNodes = []; // For RDS discovery
 
+        // Track which nodes have shown the enable/disable warning
+        this.senderWarningShown = new Set();
+        this.receiverWarningShown = new Set();
+
         this.init();
     }
 
@@ -61,6 +65,14 @@ class BCCApplication {
 
         document.getElementById('refreshReceiverBtn').addEventListener('click', () => {
             this.refreshReceiverNode();
+        });
+
+        document.getElementById('refreshReceiversBtn').addEventListener('click', () => {
+            this.refreshReceiverNode();
+        });
+
+        document.getElementById('refreshSendersBtn').addEventListener('click', () => {
+            this.refreshSenderNode();
         });
 
         // Settings button
@@ -321,6 +333,9 @@ class BCCApplication {
             this.senderNode.senders = senders;
             this.renderSenders(senders);
 
+            // Fetch active connections for all senders
+            await this.refreshSenderConnections();
+
             this.showToast(`Sender node connected: ${node.name}`, 'success');
 
         } catch (error) {
@@ -383,6 +398,9 @@ class BCCApplication {
             this.receiverNode.receivers = receivers;
             this.renderReceivers(receivers);
 
+            // Fetch active connections for all receivers
+            await this.refreshReceiverConnections();
+
             this.showToast(`Receiver node connected: ${node.name}`, 'success');
 
         } catch (error) {
@@ -408,6 +426,10 @@ class BCCApplication {
             this.storage.updateNode(this.senderNode.id, { senders });
             this.senderNode.senders = senders;
             this.renderSenders(senders);
+
+            // Refresh sender connection states (enable/disable)
+            await this.refreshSenderConnections();
+
             this.showToast('Senders refreshed', 'success');
         } catch (error) {
             this.showToast(`Refresh failed: ${error.message}`, 'error');
@@ -430,11 +452,516 @@ class BCCApplication {
             this.storage.updateNode(this.receiverNode.id, { receivers });
             this.receiverNode.receivers = receivers;
             this.renderReceivers(receivers);
+
+            // Refresh active connections
+            await this.refreshReceiverConnections();
+
             this.showToast('Receivers refreshed', 'success');
         } catch (error) {
             this.showToast(`Refresh failed: ${error.message}`, 'error');
         } finally {
             refreshBtn.disabled = false;
+        }
+    }
+
+    /**
+     * Refresh receiver connection status (active sender info)
+     */
+    async refreshReceiverConnections() {
+        if (!this.receiverNode || !this.receiverNode.receivers || !this.receiverClient) {
+            console.log('refreshReceiverConnections: Missing requirements', {
+                hasReceiverNode: !!this.receiverNode,
+                hasReceivers: !!this.receiverNode?.receivers,
+                hasClient: !!this.receiverClient
+            });
+            return;
+        }
+
+        console.log(`Fetching active connections for ${this.receiverNode.receivers.length} receivers...`);
+        const allNodes = this.storage.getAllNodes();
+
+        // Fetch active connections for each receiver
+        const connectionPromises = this.receiverNode.receivers.map(async (receiver) => {
+            try {
+                const activeInfo = await this.getReceiverActiveConnection(receiver.id);
+                if (activeInfo) {
+                    const senderInfo = activeInfo.sender_id ? this.findSenderById(activeInfo.sender_id, allNodes) : null;
+                    return {
+                        receiverId: receiver.id,
+                        senderId: activeInfo.sender_id || null,
+                        senderInfo: senderInfo,
+                        masterEnable: activeInfo.master_enable !== undefined ? activeInfo.master_enable : true
+                    };
+                }
+            } catch (error) {
+                // Silently fail for individual receivers
+                console.warn(`Failed to get active connection for receiver ${receiver.id}:`, error);
+            }
+            return null;
+        });
+
+        const connections = await Promise.all(connectionPromises);
+
+        const activeConnections = connections.filter(c => c !== null);
+        console.log(`Found ${activeConnections.length} receivers with status out of ${connections.length} total`);
+
+        // Update UI with connection info and enable state
+        connections.forEach(conn => {
+            if (conn) {
+                console.log('Displaying connection:', conn);
+                this.updateReceiverConnectionDisplay(conn.receiverId, conn.senderId, conn.senderInfo, conn.masterEnable);
+            }
+        });
+    }
+
+    /**
+     * Get active connection for a receiver
+     */
+    async getReceiverActiveConnection(receiverId) {
+        if (!this.receiverClient || !this.receiverClient.is05BaseUrl || !this.receiverClient.is05Version) {
+            return null;
+        }
+
+        try {
+            // Construct the full IS-05 active endpoint path
+            const activePath = `/x-nmos/connection/${this.receiverClient.is05Version}/single/receivers/${receiverId}/active`;
+            const fullUrl = `${this.receiverClient.is05BaseUrl}${activePath}`;
+
+            console.log(`Fetching active connection from: ${fullUrl}`);
+
+            const response = await fetch(fullUrl, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.warn(`Failed to fetch active connection for receiver ${receiverId}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Find sender by ID across all nodes
+     */
+    findSenderById(senderId, allNodes) {
+        for (const node of allNodes) {
+            if (node.senders && node.senders.length > 0) {
+                const sender = node.senders.find(s => s.id === senderId);
+                if (sender) {
+                    return {
+                        senderLabel: sender.label || 'Unknown',
+                        nodeName: node.name,
+                        sender: sender
+                    };
+                }
+            }
+        }
+        return null; // Sender not found in managed nodes
+    }
+
+    /**
+     * Update receiver card display with connection info and enable state
+     */
+    updateReceiverConnectionDisplay(receiverId, senderId, senderInfo, masterEnable = true) {
+        const receiverCard = document.querySelector(`#receiverList .item[data-id="${receiverId}"]`);
+        if (!receiverCard) return;
+
+        // Update enable/disable visual state
+        if (masterEnable) {
+            receiverCard.classList.add('receiver-enabled');
+            receiverCard.classList.remove('receiver-disabled');
+        } else {
+            receiverCard.classList.add('receiver-disabled');
+            receiverCard.classList.remove('receiver-enabled');
+        }
+
+        // Remove existing connection info and toggle button
+        const existingInfo = receiverCard.querySelector('.receiver-connection-info');
+        if (existingInfo) {
+            existingInfo.remove();
+        }
+        const existingToggleContainer = receiverCard.querySelector('.receiver-enable-container');
+        if (existingToggleContainer) {
+            existingToggleContainer.remove();
+        }
+
+        // Create enable/disable toggle container
+        const toggleContainer = document.createElement('div');
+        toggleContainer.className = 'receiver-enable-container';
+
+        // Create label
+        const toggleLabel = document.createElement('span');
+        toggleLabel.className = 'receiver-enable-label';
+        toggleLabel.textContent = masterEnable ? 'Enabled' : 'Disabled';
+
+        // Create toggle button
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'receiver-enable-toggle';
+        toggleBtn.title = masterEnable ? 'Click to disable' : 'Click to enable';
+        toggleBtn.setAttribute('aria-label', masterEnable ? 'Enabled' : 'Disabled');
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent receiver selection
+            this.toggleReceiverEnable(receiverId, !masterEnable);
+        });
+
+        toggleContainer.appendChild(toggleLabel);
+        toggleContainer.appendChild(toggleBtn);
+        receiverCard.appendChild(toggleContainer);
+
+        // Create connection info element if there's a connection
+        if (senderId) {
+            const connectionDiv = document.createElement('div');
+            connectionDiv.className = 'receiver-connection-info';
+
+            if (senderInfo) {
+                // Known sender
+                connectionDiv.innerHTML = `
+                    <svg class="connection-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <div class="connection-text">
+                        <span class="connection-label">Receiving:</span>
+                        <span class="connection-sender">${this.escapeHtml(senderInfo.senderLabel)}</span>
+                        <span class="connection-node">(${this.escapeHtml(senderInfo.nodeName)})</span>
+                    </div>
+                `;
+            } else {
+                // Unknown sender
+                const shortId = senderId.substring(0, 8) + '...';
+                connectionDiv.innerHTML = `
+                    <svg class="connection-icon connection-icon-unknown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <div class="connection-text">
+                        <span class="connection-label">Receiving:</span>
+                        <span class="connection-sender-unknown">Unknown (${shortId})</span>
+                    </div>
+                `;
+            }
+
+            receiverCard.appendChild(connectionDiv);
+        }
+    }
+
+    /**
+     * Show warning modal for enable/disable toggle
+     */
+    async showEnableWarning(type, nodeId) {
+        console.log('showEnableWarning called - type:', type, 'nodeId:', nodeId);
+        return new Promise((resolve) => {
+            const modal = document.getElementById('enableWarningModal');
+            const title = document.getElementById('warningModalTitle');
+            const content = document.getElementById('warningModalContent');
+            const confirmBtn = document.getElementById('warningConfirm');
+            const cancelBtn = document.getElementById('warningCancel');
+
+            console.log('Modal elements:', { modal, title, content, confirmBtn, cancelBtn });
+
+            if (type === 'sender') {
+                title.textContent = 'Warning: Sender Enable/Disable';
+                content.innerHTML = `
+                    <p>Changing the sender's enable/disable state will <strong>stop packet transmission</strong>.</p>
+                    <p>This may <strong>interrupt video/audio</strong> to other devices receiving from this sender.</p>
+                    <p>Please verify the impact before proceeding.</p>
+                `;
+            } else {
+                title.textContent = 'Warning: Receiver Enable/Disable';
+                content.innerHTML = `
+                    <p>Changing the receiver's enable/disable state will <strong>start receiving with the currently configured settings</strong>.</p>
+                    <p>This may receive unintended streams and <strong>consume bandwidth</strong>.</p>
+                    <p>Please verify bandwidth management before proceeding.</p>
+                `;
+            }
+
+            modal.classList.remove('hidden');
+
+            const handleConfirm = () => {
+                cleanup();
+                resolve(true);
+            };
+
+            const handleCancel = () => {
+                cleanup();
+                resolve(false);
+            };
+
+            const cleanup = () => {
+                modal.classList.add('hidden');
+                confirmBtn.removeEventListener('click', handleConfirm);
+                cancelBtn.removeEventListener('click', handleCancel);
+            };
+
+            confirmBtn.addEventListener('click', handleConfirm);
+            cancelBtn.addEventListener('click', handleCancel);
+        });
+    }
+
+    /**
+     * Toggle receiver enable/disable state
+     */
+    async toggleReceiverEnable(receiverId, newEnableState) {
+        if (!this.receiverClient || !this.receiverClient.is05BaseUrl || !this.receiverClient.is05Version) {
+            this.showToast('IS-05 connection not available', 'error');
+            return;
+        }
+
+        // Check if warning should be shown for this node
+        const nodeId = this.receiverNode.id;
+        console.log('toggleReceiverEnable - nodeId:', nodeId, 'warningShown:', this.receiverWarningShown.has(nodeId));
+
+        if (!this.receiverWarningShown.has(nodeId)) {
+            console.log('Showing warning for receiver node:', nodeId);
+            const confirmed = await this.showEnableWarning('receiver', nodeId);
+            console.log('Warning result:', confirmed);
+            if (!confirmed) {
+                console.log('User cancelled receiver toggle');
+                return; // User cancelled
+            }
+            this.receiverWarningShown.add(nodeId);
+        }
+
+        try {
+            // PATCH the receiver's staged endpoint with new master_enable value
+            const stagedPath = `/x-nmos/connection/${this.receiverClient.is05Version}/single/receivers/${receiverId}/staged`;
+            const fullUrl = `${this.receiverClient.is05BaseUrl}${stagedPath}`;
+
+            const patchBody = {
+                master_enable: newEnableState,
+                activation: {
+                    mode: 'activate_immediate'
+                }
+            };
+
+            console.log(`Toggling receiver ${receiverId} to ${newEnableState ? 'enabled' : 'disabled'}`);
+
+            const response = await fetch(fullUrl, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(patchBody)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            // Wait a moment for the change to take effect
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Refresh the active state for this specific receiver
+            const activeInfo = await this.getReceiverActiveConnection(receiverId);
+            if (activeInfo) {
+                const allNodes = this.storage.getAllNodes();
+                const senderInfo = activeInfo.sender_id ? this.findSenderById(activeInfo.sender_id, allNodes) : null;
+                this.updateReceiverConnectionDisplay(
+                    receiverId,
+                    activeInfo.sender_id || null,
+                    senderInfo,
+                    activeInfo.master_enable !== undefined ? activeInfo.master_enable : true
+                );
+            }
+
+            this.showToast(`Receiver ${newEnableState ? 'enabled' : 'disabled'}`, 'success');
+
+        } catch (error) {
+            console.error('Failed to toggle receiver enable state:', error);
+            this.showToast(`Failed to ${newEnableState ? 'enable' : 'disable'} receiver: ${error.message}`, 'error');
+        }
+    }
+
+    /**
+     * Refresh sender connection status (master_enable state)
+     */
+    async refreshSenderConnections() {
+        if (!this.senderNode || !this.senderNode.senders || !this.senderClient) {
+            console.log('refreshSenderConnections: Missing requirements', {
+                hasSenderNode: !!this.senderNode,
+                hasSenders: !!this.senderNode?.senders,
+                hasClient: !!this.senderClient
+            });
+            return;
+        }
+
+        console.log(`Fetching active connections for ${this.senderNode.senders.length} senders...`);
+
+        const connectionPromises = this.senderNode.senders.map(async (sender) => {
+            try {
+                const activeInfo = await this.getSenderActiveConnection(sender.id);
+                if (activeInfo) {
+                    return {
+                        senderId: sender.id,
+                        masterEnable: activeInfo.master_enable !== undefined ? activeInfo.master_enable : true
+                    };
+                }
+            } catch (error) {
+                console.warn(`Failed to get active connection for sender ${sender.id}:`, error);
+            }
+            return null;
+        });
+
+        const connections = await Promise.all(connectionPromises);
+        connections.forEach(conn => {
+            if (conn) {
+                this.updateSenderConnectionDisplay(conn.senderId, conn.masterEnable);
+            }
+        });
+    }
+
+    /**
+     * Get sender active connection info from IS-05
+     */
+    async getSenderActiveConnection(senderId) {
+        if (!this.senderClient || !this.senderClient.is05BaseUrl || !this.senderClient.is05Version) {
+            return null;
+        }
+
+        try {
+            const activePath = `/x-nmos/connection/${this.senderClient.is05Version}/single/senders/${senderId}/active`;
+            const fullUrl = `${this.senderClient.is05BaseUrl}${activePath}`;
+
+            console.log(`Fetching active connection from: ${fullUrl}`);
+
+            const response = await fetch(fullUrl, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.warn(`Failed to fetch active connection for sender ${senderId}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Update sender card UI with enable/disable state
+     */
+    updateSenderConnectionDisplay(senderId, masterEnable = true) {
+        const senderCard = document.querySelector(`#senderList .item[data-id="${senderId}"]`);
+        if (!senderCard) return;
+
+        // Update enable/disable visual state
+        if (masterEnable) {
+            senderCard.classList.add('sender-enabled');
+            senderCard.classList.remove('sender-disabled');
+        } else {
+            senderCard.classList.add('sender-disabled');
+            senderCard.classList.remove('sender-enabled');
+        }
+
+        // Remove existing toggle container if present
+        const existingToggleContainer = senderCard.querySelector('.sender-enable-container');
+        if (existingToggleContainer) {
+            existingToggleContainer.remove();
+        }
+
+        // Create enable/disable toggle container
+        const toggleContainer = document.createElement('div');
+        toggleContainer.className = 'sender-enable-container';
+
+        // Create label
+        const toggleLabel = document.createElement('span');
+        toggleLabel.className = 'sender-enable-label';
+        toggleLabel.textContent = masterEnable ? 'Enabled' : 'Disabled';
+
+        // Create toggle button
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'sender-enable-toggle';
+        toggleBtn.title = masterEnable ? 'Click to disable' : 'Click to enable';
+        toggleBtn.setAttribute('aria-label', masterEnable ? 'Enabled' : 'Disabled');
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent sender selection
+            this.toggleSenderEnable(senderId, !masterEnable);
+        });
+
+        toggleContainer.appendChild(toggleLabel);
+        toggleContainer.appendChild(toggleBtn);
+        senderCard.appendChild(toggleContainer);
+    }
+
+    /**
+     * Toggle sender enable/disable state via IS-05 PATCH
+     */
+    async toggleSenderEnable(senderId, newEnableState) {
+        if (!this.senderClient || !this.senderClient.is05BaseUrl || !this.senderClient.is05Version) {
+            this.showToast('IS-05 connection not available', 'error');
+            return;
+        }
+
+        // Check if warning should be shown for this node
+        const nodeId = this.senderNode.id;
+        console.log('toggleSenderEnable - nodeId:', nodeId, 'warningShown:', this.senderWarningShown.has(nodeId));
+
+        if (!this.senderWarningShown.has(nodeId)) {
+            console.log('Showing warning for sender node:', nodeId);
+            const confirmed = await this.showEnableWarning('sender', nodeId);
+            console.log('Warning result:', confirmed);
+            if (!confirmed) {
+                console.log('User cancelled sender toggle');
+                return; // User cancelled
+            }
+            this.senderWarningShown.add(nodeId);
+        }
+
+        try {
+            const stagedPath = `/x-nmos/connection/${this.senderClient.is05Version}/single/senders/${senderId}/staged`;
+            const fullUrl = `${this.senderClient.is05BaseUrl}${stagedPath}`;
+
+            const patchBody = {
+                master_enable: newEnableState,
+                activation: {
+                    mode: 'activate_immediate'
+                }
+            };
+
+            console.log(`Toggling sender ${senderId} to ${newEnableState ? 'enabled' : 'disabled'}`);
+
+            const response = await fetch(fullUrl, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(patchBody)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            // Wait for change to take effect
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Refresh this specific sender
+            const activeInfo = await this.getSenderActiveConnection(senderId);
+            if (activeInfo) {
+                this.updateSenderConnectionDisplay(
+                    senderId,
+                    activeInfo.master_enable !== undefined ? activeInfo.master_enable : true
+                );
+            }
+
+            this.showToast(`Sender ${newEnableState ? 'enabled' : 'disabled'}`, 'success');
+
+        } catch (error) {
+            console.error('Failed to toggle sender enable state:', error);
+            this.showToast(`Failed to ${newEnableState ? 'enable' : 'disable'} sender: ${error.message}`, 'error');
         }
     }
 
@@ -633,6 +1160,9 @@ class BCCApplication {
             // Success
             this.showToast(`✅ Patched: ${this.selectedSender.label} → ${this.selectedReceiver.label}`, 'success');
             statusEl.textContent = 'Patch successful!';
+
+            // Refresh receiver connections to show updated status
+            await this.refreshReceiverConnections();
 
             // Reset after delay
             setTimeout(() => {

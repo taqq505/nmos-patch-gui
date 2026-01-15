@@ -85,6 +85,17 @@ class BCCApplication {
             this.openSettingsModal('about');
         });
 
+        // Resource detail modal copy buttons
+        document.getElementById('copySdpBtn').addEventListener('click', () => {
+            const sdpContent = document.getElementById('sdpContent').textContent;
+            this.copyToClipboard(sdpContent, document.getElementById('copySdpBtn'));
+        });
+
+        document.getElementById('copyActiveBtn').addEventListener('click', () => {
+            const activeContent = document.getElementById('activeContent').textContent;
+            this.copyToClipboard(activeContent, document.getElementById('copyActiveBtn'));
+        });
+
         // TAKE button
         document.getElementById('takeBtn').addEventListener('click', () => {
             this.executePatch();
@@ -1003,6 +1014,10 @@ class BCCApplication {
             item.addEventListener('click', () => {
                 this.selectSender(item.dataset.id);
             });
+            item.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                this.showSenderDetails(item.dataset.id);
+            });
         });
     }
 
@@ -1044,6 +1059,10 @@ class BCCApplication {
         listEl.querySelectorAll('.item').forEach(item => {
             item.addEventListener('click', () => {
                 this.selectReceiver(item.dataset.id);
+            });
+            item.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                this.showReceiverDetails(item.dataset.id);
             });
         });
     }
@@ -1917,6 +1936,109 @@ class BCCApplication {
         } else {
             header.classList.add('active');
             content.classList.add('active');
+        }
+    }
+
+    /**
+     * Show sender details modal (SDP + active connection)
+     */
+    async showSenderDetails(senderId) {
+        if (!this.senderNode || !this.senderNode.senders) return;
+
+        const sender = this.senderNode.senders.find(s => s.id === senderId);
+        if (!sender) return;
+
+        const modal = document.getElementById('resourceDetailModal');
+        const title = document.getElementById('resourceDetailTitle');
+        const sdpSection = document.getElementById('sdpSection');
+        const sdpContent = document.getElementById('sdpContent');
+        const activeContent = document.getElementById('activeContent');
+
+        title.textContent = `Sender: ${sender.label}`;
+        sdpSection.style.display = 'block';
+        sdpContent.textContent = 'Loading SDP...';
+        activeContent.textContent = 'Loading...';
+
+        modal.classList.add('active');
+
+        // Fetch SDP from IS-04 manifest_href
+        try {
+            if (sender.manifest_href) {
+                const sdp = await this.senderClient.getSenderSDP(sender);
+                sdpContent.textContent = sdp;
+            } else {
+                sdpContent.textContent = 'No manifest_href available';
+            }
+        } catch (error) {
+            sdpContent.textContent = `Error fetching SDP: ${error.message}`;
+        }
+
+        // Fetch active connection from IS-05
+        try {
+            const activeInfo = await this.getSenderActiveConnection(senderId);
+            if (activeInfo) {
+                activeContent.textContent = JSON.stringify(activeInfo, null, 2);
+            } else {
+                activeContent.textContent = 'No active connection data available';
+            }
+        } catch (error) {
+            activeContent.textContent = `Error fetching active connection: ${error.message}`;
+        }
+    }
+
+    /**
+     * Show receiver details modal (active connection)
+     */
+    async showReceiverDetails(receiverId) {
+        if (!this.receiverNode || !this.receiverNode.receivers) return;
+
+        const receiver = this.receiverNode.receivers.find(r => r.id === receiverId);
+        if (!receiver) return;
+
+        const modal = document.getElementById('resourceDetailModal');
+        const title = document.getElementById('resourceDetailTitle');
+        const sdpSection = document.getElementById('sdpSection');
+        const activeContent = document.getElementById('activeContent');
+
+        title.textContent = `Receiver: ${receiver.label}`;
+        sdpSection.style.display = 'none'; // No SDP for receiver
+        activeContent.textContent = 'Loading...';
+
+        modal.classList.add('active');
+
+        // Fetch active connection from IS-05
+        try {
+            const activeInfo = await this.getReceiverActiveConnection(receiverId);
+            if (activeInfo) {
+                activeContent.textContent = JSON.stringify(activeInfo, null, 2);
+            } else {
+                activeContent.textContent = 'No active connection data available';
+            }
+        } catch (error) {
+            activeContent.textContent = `Error fetching active connection: ${error.message}`;
+        }
+    }
+
+    /**
+     * Copy text to clipboard
+     */
+    async copyToClipboard(text, buttonEl) {
+        try {
+            await navigator.clipboard.writeText(text);
+            buttonEl.classList.add('copied');
+            const originalText = buttonEl.innerHTML;
+            buttonEl.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Copied!
+            `;
+            setTimeout(() => {
+                buttonEl.classList.remove('copied');
+                buttonEl.innerHTML = originalText;
+            }, 2000);
+        } catch (error) {
+            this.showToast('Failed to copy to clipboard', 'error');
         }
     }
 }

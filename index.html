@@ -622,6 +622,44 @@
         </div>
     </div>
 
+    <!-- Resource Detail Modal -->
+    <div id="resourceDetailModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="resourceDetailTitle">Resource Details</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="resource-detail-body">
+                <div class="detail-section" id="sdpSection" style="display: none;">
+                    <div class="detail-section-header">
+                        <h3>SDP (Transport File)</h3>
+                        <button id="copySdpBtn" class="btn btn-small" title="Copy SDP to clipboard">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                            </svg>
+                            Copy
+                        </button>
+                    </div>
+                    <pre id="sdpContent" class="detail-code"></pre>
+                </div>
+                <div class="detail-section" id="activeSection">
+                    <div class="detail-section-header">
+                        <h3>Active Connection (IS-05)</h3>
+                        <button id="copyActiveBtn" class="btn btn-small" title="Copy JSON to clipboard">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                            </svg>
+                            Copy
+                        </button>
+                    </div>
+                    <pre id="activeContent" class="detail-code"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
     <div id="corsAlert" class="cors-alert hidden">

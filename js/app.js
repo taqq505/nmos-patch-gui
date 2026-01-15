@@ -740,6 +740,10 @@ class BCCApplication {
             this.receiverWarningShown.add(nodeId);
         }
 
+        // Get receiver info for history
+        const receiver = this.receiverNode.receivers.find(r => r.id === receiverId);
+        const receiverLabel = receiver ? receiver.label : receiverId;
+
         try {
             // PATCH the receiver's staged endpoint with new master_enable value
             const stagedPath = `/x-nmos/connection/${this.receiverClient.is05Version}/single/receivers/${receiverId}/staged`;
@@ -763,6 +767,8 @@ class BCCApplication {
                 body: JSON.stringify(patchBody)
             });
 
+            const responseData = await response.json().catch(() => null);
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
@@ -783,10 +789,38 @@ class BCCApplication {
                 );
             }
 
+            // Add to history
+            this.storage.addHistory({
+                type: 'enable_change',
+                target: 'receiver',
+                resourceId: receiverId,
+                resourceLabel: receiverLabel,
+                nodeLabel: this.receiverNode.name,
+                newState: newEnableState,
+                timestamp: Date.now(),
+                success: true,
+                patchBody: patchBody,
+                response: responseData
+            });
+
             this.showToast(`Receiver ${newEnableState ? 'enabled' : 'disabled'}`, 'success');
 
         } catch (error) {
             console.error('Failed to toggle receiver enable state:', error);
+
+            // Add failed attempt to history
+            this.storage.addHistory({
+                type: 'enable_change',
+                target: 'receiver',
+                resourceId: receiverId,
+                resourceLabel: receiverLabel,
+                nodeLabel: this.receiverNode.name,
+                newState: newEnableState,
+                timestamp: Date.now(),
+                success: false,
+                error: error.message
+            });
+
             this.showToast(`Failed to ${newEnableState ? 'enable' : 'disable'} receiver: ${error.message}`, 'error');
         }
     }
@@ -930,6 +964,10 @@ class BCCApplication {
             this.senderWarningShown.add(nodeId);
         }
 
+        // Get sender info for history
+        const sender = this.senderNode.senders.find(s => s.id === senderId);
+        const senderLabel = sender ? sender.label : senderId;
+
         try {
             const stagedPath = `/x-nmos/connection/${this.senderClient.is05Version}/single/senders/${senderId}/staged`;
             const fullUrl = `${this.senderClient.is05BaseUrl}${stagedPath}`;
@@ -952,6 +990,8 @@ class BCCApplication {
                 body: JSON.stringify(patchBody)
             });
 
+            const responseData = await response.json().catch(() => null);
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
@@ -968,10 +1008,38 @@ class BCCApplication {
                 );
             }
 
+            // Add to history
+            this.storage.addHistory({
+                type: 'enable_change',
+                target: 'sender',
+                resourceId: senderId,
+                resourceLabel: senderLabel,
+                nodeLabel: this.senderNode.name,
+                newState: newEnableState,
+                timestamp: Date.now(),
+                success: true,
+                patchBody: patchBody,
+                response: responseData
+            });
+
             this.showToast(`Sender ${newEnableState ? 'enabled' : 'disabled'}`, 'success');
 
         } catch (error) {
             console.error('Failed to toggle sender enable state:', error);
+
+            // Add failed attempt to history
+            this.storage.addHistory({
+                type: 'enable_change',
+                target: 'sender',
+                resourceId: senderId,
+                resourceLabel: senderLabel,
+                nodeLabel: this.senderNode.name,
+                newState: newEnableState,
+                timestamp: Date.now(),
+                success: false,
+                error: error.message
+            });
+
             this.showToast(`Failed to ${newEnableState ? 'enable' : 'disable'} sender: ${error.message}`, 'error');
         }
     }
@@ -1416,6 +1484,55 @@ class BCCApplication {
             content.innerHTML = history.map((entry, index) => {
                 const date = new Date(entry.timestamp);
                 const timeStr = date.toLocaleString();
+
+                // Handle enable_change type
+                if (entry.type === 'enable_change') {
+                    const hasJson = entry.patchBody || entry.response;
+                    const statusClass = entry.success ? 'success' : 'error';
+                    const statusText = entry.success ? 'SUCCESS' : 'FAILED';
+                    const stateText = entry.newState ? 'ENABLED' : 'DISABLED';
+                    const stateClass = entry.newState ? 'enabled' : 'disabled';
+
+                    return `
+                        <div class="history-item history-enable-change">
+                            <div class="history-header">
+                                <div class="history-time">${timeStr}</div>
+                                <div class="history-status ${statusClass}">${statusText}</div>
+                            </div>
+                            <div class="history-details">
+                                <strong>${this.escapeHtml(entry.nodeLabel)}</strong><br>
+                                <span class="history-target-type">${entry.target.toUpperCase()}</span>
+                                ${this.escapeHtml(entry.resourceLabel)} →
+                                <span class="history-state-${stateClass}">${stateText}</span>
+                                ${entry.error ? `<br><span style="color: var(--error);">Error: ${this.escapeHtml(entry.error)}</span>` : ''}
+                            </div>
+                            ${hasJson ? `
+                                <button class="history-details-btn" onclick="window.bccApp.toggleHistoryDetails(${index})">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6 9 12 15 18 9"/>
+                                    </svg>
+                                    <span>View Details</span>
+                                </button>
+                                <div class="history-json" id="history-json-${index}" style="display: none;">
+                                    ${entry.patchBody ? `
+                                        <div class="json-section">
+                                            <h4>PATCH Request Body:</h4>
+                                            <pre class="json-code">${this.escapeHtml(JSON.stringify(entry.patchBody, null, 2))}</pre>
+                                        </div>
+                                    ` : ''}
+                                    ${entry.response ? `
+                                        <div class="json-section">
+                                            <h4>Response:</h4>
+                                            <pre class="json-code">${this.escapeHtml(JSON.stringify(entry.response, null, 2))}</pre>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+
+                // Original patch history format
                 const hasJson = entry.patch_body || entry.active_state;
 
                 return `
@@ -1434,7 +1551,7 @@ class BCCApplication {
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="6 9 12 15 18 9"/>
                                 </svg>
-                                View Details
+                                <span>View Details</span>
                             </button>
                             <div class="history-json" id="history-json-${index}" style="display: none;">
                                 ${entry.patch_body ? `
@@ -1977,7 +2094,7 @@ class BCCApplication {
         try {
             const activeInfo = await this.getSenderActiveConnection(senderId);
             if (activeInfo) {
-                activeContent.textContent = JSON.stringify(activeInfo, null, 2);
+                activeContent.innerHTML = this.formatJsonWithHighlight(activeInfo);
             } else {
                 activeContent.textContent = 'No active connection data available';
             }
@@ -2010,13 +2127,23 @@ class BCCApplication {
         try {
             const activeInfo = await this.getReceiverActiveConnection(receiverId);
             if (activeInfo) {
-                activeContent.textContent = JSON.stringify(activeInfo, null, 2);
+                activeContent.innerHTML = this.formatJsonWithHighlight(activeInfo);
             } else {
                 activeContent.textContent = 'No active connection data available';
             }
         } catch (error) {
             activeContent.textContent = `Error fetching active connection: ${error.message}`;
         }
+    }
+
+    /**
+     * Format JSON with syntax highlighting for true/false
+     */
+    formatJsonWithHighlight(obj) {
+        const json = JSON.stringify(obj, null, 2);
+        return json
+            .replace(/: true/g, ': <span class="json-true">true</span>')
+            .replace(/: false/g, ': <span class="json-false">false</span>');
     }
 
     /**

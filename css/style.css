@@ -1438,6 +1438,14 @@ body {
     background: linear-gradient(180deg, #00e5ff, #8b4aff);
 }
 
+.detail-code .json-true {
+    color: var(--accent-primary);
+}
+
+.detail-code .json-false {
+    color: #ff9500;
+}
+
 /* CORS */
 .cors-warning {
     background: rgba(255, 204, 0, 0.12);
@@ -1867,9 +1875,31 @@ body {
     color: var(--success);
 }
 
-.history-status.failed {
+.history-status.failed,
+.history-status.error {
     background: rgba(239, 68, 68, 0.2);
     color: var(--error);
+}
+
+.history-target-type {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    margin-right: 4px;
+}
+
+.history-state-enabled {
+    color: var(--accent-primary);
+    font-weight: 600;
+}
+
+.history-state-disabled {
+    color: #ff9500;
+    font-weight: 600;
 }
 
 .history-details {

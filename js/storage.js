@@ -176,24 +176,45 @@ export class StorageManager {
      * Add patch history entry
      */
     addHistory(entry) {
-        const historyEntry = {
-            id: this.generateId(),
-            timestamp: new Date().toISOString(),
-            node_id: entry.node_id,
-            node_name: entry.node_name,
-            sender: {
-                id: entry.sender.id,
-                label: entry.sender.label
-            },
-            receiver: {
-                id: entry.receiver.id,
-                label: entry.receiver.label
-            },
-            status: entry.status, // 'success' | 'failed'
-            error: entry.error || null,
-            patch_body: entry.patch_body || null,
-            active_state: entry.active_state || null
-        };
+        let historyEntry;
+
+        // Handle enable_change type
+        if (entry.type === 'enable_change') {
+            historyEntry = {
+                id: this.generateId(),
+                type: 'enable_change',
+                timestamp: entry.timestamp || Date.now(),
+                target: entry.target, // 'sender' | 'receiver'
+                resourceId: entry.resourceId,
+                resourceLabel: entry.resourceLabel,
+                nodeLabel: entry.nodeLabel,
+                newState: entry.newState,
+                success: entry.success,
+                error: entry.error || null,
+                patchBody: entry.patchBody || null,
+                response: entry.response || null
+            };
+        } else {
+            // Original patch history format
+            historyEntry = {
+                id: this.generateId(),
+                timestamp: new Date().toISOString(),
+                node_id: entry.node_id,
+                node_name: entry.node_name,
+                sender: {
+                    id: entry.sender.id,
+                    label: entry.sender.label
+                },
+                receiver: {
+                    id: entry.receiver.id,
+                    label: entry.receiver.label
+                },
+                status: entry.status, // 'success' | 'failed'
+                error: entry.error || null,
+                patch_body: entry.patch_body || null,
+                active_state: entry.active_state || null
+            };
+        }
 
         this.history.unshift(historyEntry); // Add to beginning
         this.saveHistory();

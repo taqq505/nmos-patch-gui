@@ -51,12 +51,24 @@ export class NMOSClient {
                 );
 
                 if (is05Control && is05Control.href) {
-                    this.is05BaseUrl = is05Control.href.replace(/\/$/, '');
-                    console.log('✅ IS-05 discovered from device controls:', this.is05BaseUrl);
+                    const href = is05Control.href.replace(/\/$/, '');
+                    console.log('✅ IS-05 discovered from device controls:', href);
 
-                    // Get IS-05 version
-                    const is05Versions = await this.fetchJSON('/x-nmos/connection/', this.is05BaseUrl);
-                    this.is05Version = is05Versions.sort().reverse()[0].replace(/\//g, '');
+                    // Check if href already contains version (e.g., /x-nmos/connection/v1.0)
+                    const versionMatch = href.match(/\/x-nmos\/connection\/(v\d+\.\d+)$/);
+
+                    if (versionMatch) {
+                        // href already contains version - extract base URL and version
+                        this.is05BaseUrl = href.replace(/\/x-nmos\/connection\/v\d+\.\d+$/, '');
+                        this.is05Version = versionMatch[1];
+                        console.log('✅ IS-05 version from href:', this.is05Version, 'Base URL:', this.is05BaseUrl);
+                    } else {
+                        // href does not contain version - fetch version list
+                        this.is05BaseUrl = href;
+                        const is05Versions = await this.fetchJSON('/x-nmos/connection/', this.is05BaseUrl);
+                        this.is05Version = is05Versions.sort().reverse()[0].replace(/\//g, '');
+                        console.log('✅ IS-05 version from API:', this.is05Version);
+                    }
 
                     return;
                 }

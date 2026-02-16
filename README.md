@@ -66,8 +66,13 @@ open -na "Google Chrome" --args --disable-web-security --user-data-dir=/tmp/chro
 
 ### Linux
 ```bash
+# Option 1: User home directory (recommended)
+google-chrome --user-data-dir="$HOME/chrome-dev-data" --disable-web-security
+
+# Option 2: Temp directory
 google-chrome --disable-web-security --user-data-dir=/tmp/chrome_dev
 ```
+> **Note:** If using Chromium, replace `google-chrome` with `chromium`.
 
 ## Structure / 構成
 ```

@@ -400,9 +400,16 @@
                         <div class="cors-command">
                             <div class="cors-command-header">
                                 <span>Linux</span>
+                            </div>
+                            <div class="cors-command-row">
+                                <code>google-chrome --user-data-dir="$HOME/chrome-dev-data" --disable-web-security</code>
+                                <button class="copy-btn" data-copy="google-chrome --user-data-dir=&quot;$HOME/chrome-dev-data&quot; --disable-web-security">Copy</button>
+                            </div>
+                            <div class="cors-command-row">
+                                <code>google-chrome --disable-web-security --user-data-dir=/tmp/chrome_dev</code>
                                 <button class="copy-btn" data-copy="google-chrome --disable-web-security --user-data-dir=/tmp/chrome_dev">Copy</button>
                             </div>
-                            <pre class="cors-command-body"><code>google-chrome --disable-web-security --user-data-dir=/tmp/chrome_dev</code></pre>
+                            <small class="cors-note">If using Chromium, replace <code>google-chrome</code> with <code>chromium</code>.</small>
                         </div>
 
                         <p><strong>Warning:</strong> This mode is unsafe. Use it only for temporary testing.</p>

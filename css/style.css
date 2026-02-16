@@ -1810,6 +1810,40 @@ body {
     background: var(--bg-primary);
 }
 
+.cors-note {
+    display: block;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border-color);
+}
+
+.cors-note code {
+    color: var(--text-secondary);
+}
+
+.cors-command-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--bg-primary);
+    border-top: 1px solid var(--border-color);
+}
+
+.cors-command-row:first-of-type {
+    border-top: none;
+}
+
+.cors-command-row code {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 12px;
+    color: var(--accent-primary);
+    flex: 1;
+    overflow-x: auto;
+}
+
 .copy-btn {
     background: transparent;
     color: var(--accent-primary);
@@ -1823,6 +1857,11 @@ body {
 
 .copy-btn:hover {
     background: var(--bg-hover);
+}
+
+.copy-btn-group {
+    display: flex;
+    gap: 6px;
 }
 
 /* History */

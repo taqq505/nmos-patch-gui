@@ -5,6 +5,7 @@
 
 import { NMOSClient } from './nmos-api.js';
 import { StorageManager } from './storage.js';
+import { RDSSubscription } from './rds-subscription.js';
 
 class BCCApplication {
     constructor() {
@@ -16,6 +17,12 @@ class BCCApplication {
         this.selectedSender = null;
         this.selectedReceiver = null;
         this.discoveredNodes = []; // For RDS discovery
+        this.lastRdsUrl = null;    // RDS URL used for last discovery
+
+        // RDS WebSocket subscriptions (Map: url → RDSSubscription)
+        this.rdsSubscriptions = new Map();
+        this._refreshDebounce = { sender: null, receiver: null };
+        this._lastUserAction = 0; // Timestamp of last user-initiated IS-05 action
 
         // Track which nodes have shown the enable/disable warning
         this.senderWarningShown = new Set();
@@ -32,6 +39,7 @@ class BCCApplication {
         this.loadNodes();
         this.showWelcomeIfNeeded();
         this.checkCookieConsent();
+        this.reconnectEnabledSubscriptions();
     }
 
     /**
@@ -229,6 +237,16 @@ class BCCApplication {
 
         document.getElementById('resetAllBtn').addEventListener('click', () => {
             this.handleResetAll();
+        });
+
+        // Export / Import buttons
+        document.getElementById('exportDataBtn').addEventListener('click', () => {
+            this.handleExportData();
+        });
+
+        document.getElementById('importDataInput').addEventListener('change', (e) => {
+            if (e.target.files[0]) this.handleImportData(e.target.files[0]);
+            e.target.value = ''; // allow re-selecting same file
         });
 
         // Modal close buttons
@@ -752,6 +770,7 @@ class BCCApplication {
             this.showToast('IS-05 connection not available', 'error');
             return;
         }
+        this._lastUserAction = Date.now();
 
         // Check if warning should be shown for this node
         const nodeId = this.receiverNode.id;
@@ -976,6 +995,7 @@ class BCCApplication {
             this.showToast('IS-05 connection not available', 'error');
             return;
         }
+        this._lastUserAction = Date.now();
 
         // Check if warning should be shown for this node
         const nodeId = this.senderNode.id;
@@ -1233,6 +1253,7 @@ class BCCApplication {
         if (!this.selectedSender || !this.selectedReceiver || !this.senderClient || !this.receiverClient) {
             return;
         }
+        this._lastUserAction = Date.now();
 
         const takeBtn = document.getElementById('takeBtn');
         const statusEl = document.getElementById('statusText');
@@ -1779,11 +1800,30 @@ class BCCApplication {
             return;
         }
 
-        content.innerHTML = urls.map(entry => `
+        content.innerHTML = urls.map(entry => {
+            const sub = this.rdsSubscriptions.get(entry.url);
+            const wsStatus = sub ? sub.status : (entry.ws_enabled ? 'connecting' : 'disconnected');
+            const isActive = sub && sub.status !== 'disconnected';
+
+            const statusLabels = {
+                connected: '● Live',
+                connecting: '◌ Connecting...',
+                reconnecting: '◌ Reconnecting...',
+                error: '● Error',
+                disconnected: '○ Not subscribed'
+            };
+            const statusLabel = statusLabels[wsStatus] || '○ Not subscribed';
+            const badgeClass = (wsStatus === 'disconnected') ? '' : wsStatus;
+
+            return `
             <div class="node-manage-item">
                 <div class="node-manage-header">
                     <div class="node-manage-url" style="font-size:14px; color: var(--text-primary);">${this.escapeHtml(entry.url)}</div>
                     <div class="node-manage-actions">
+                        <span class="rds-ws-badge ${badgeClass}">${statusLabel}</span>
+                        <button class="btn btn-small rds-ws-btn" data-url="${this.escapeHtml(entry.url)}" title="${isActive ? 'Unsubscribe' : 'Subscribe to live updates'}">
+                            ${isActive ? 'Unsubscribe' : 'Subscribe'}
+                        </button>
                         <button class="btn btn-small rds-resync-btn" data-url="${this.escapeHtml(entry.url)}" title="Re-sync nodes from this RDS">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                                 <polyline points="23 4 23 10 17 10"/>
@@ -1802,9 +1842,13 @@ class BCCApplication {
                 </div>
                 <div class="node-manage-date">Last used: ${new Date(entry.last_used).toLocaleString()}</div>
             </div>
-        `).join('');
+            `;
+        }).join('');
 
         // Wire up buttons
+        content.querySelectorAll('.rds-ws-btn').forEach(btn => {
+            btn.addEventListener('click', () => this.handleRdsWsToggle(btn.dataset.url));
+        });
         content.querySelectorAll('.rds-delete-btn').forEach(btn => {
             btn.addEventListener('click', () => this.handleDeleteRdsUrl(btn.dataset.url));
         });
@@ -1817,6 +1861,7 @@ class BCCApplication {
      * Delete a saved RDS URL
      */
     handleDeleteRdsUrl(url) {
+        this.disconnectRdsSubscription(url);
         this.storage.removeRdsUrl(url);
         this.loadRdsTab();
         this.showToast('RDS removed', 'success');
@@ -1899,6 +1944,69 @@ class BCCApplication {
     }
 
     /**
+     * Export all data as a JSON file download
+     */
+    handleExportData() {
+        const data = this.storage.exportData();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `nmos-bcc-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.showToast('Backup exported', 'success');
+    }
+
+    /**
+     * Import data from a JSON backup file
+     */
+    async handleImportData(file) {
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+
+            if (!data.nodes && !data.rds_urls && !data.history) {
+                this.showToast('Invalid backup file', 'error');
+                return;
+            }
+
+            if (!confirm('Import this backup? Current data (nodes, RDS URLs, history) will be replaced.')) {
+                return;
+            }
+
+            // Disconnect any active WS subscriptions before replacing RDS URLs
+            this.rdsSubscriptions.forEach((sub) => sub.disconnect());
+            this.rdsSubscriptions.clear();
+            this.updateWsStatusIndicator();
+
+            this.storage.importData(data);
+
+            // Reload UI
+            this.senderNode = null;
+            this.senderClient = null;
+            this.receiverNode = null;
+            this.receiverClient = null;
+            this.selectedSender = null;
+            this.selectedReceiver = null;
+            this.loadNodes();
+            this.renderSenders([]);
+            this.renderReceivers([]);
+            this.updateTakeButton();
+            this.loadHistory();
+
+            // Reconnect WS subscriptions that were enabled
+            this.reconnectEnabledSubscriptions();
+
+            document.getElementById('settingsModal').classList.remove('active');
+            this.showToast('Backup imported successfully', 'success');
+        } catch (e) {
+            console.error('Import failed:', e);
+            this.showToast('Failed to import backup file', 'error');
+        }
+    }
+
+    /**
      * Open connect RDS modal
      */
     openConnectRdsModal() {
@@ -1973,8 +2081,9 @@ class BCCApplication {
                 throw new Error('No nodes found in registry');
             }
 
-            // Save RDS URL to history
+            // Save RDS URL to history and remember it for WS connect
             this.storage.saveRdsUrl(rdsUrl);
+            this.lastRdsUrl = rdsUrl;
 
             // Store discovered nodes temporarily
             this.discoveredNodes = nodes;
@@ -2196,7 +2305,162 @@ class BCCApplication {
             } else {
                 this.showToast(`Failed to add nodes`, 'error');
             }
+
+            // Auto-enable WS subscription for this RDS
+            if (this.lastRdsUrl && (addedCount > 0 || skippedCount > 0)) {
+                this.connectRdsSubscription(this.lastRdsUrl, true);
+            }
         }, 3000);
+    }
+
+    // ===== RDS WebSocket Subscription =====
+
+    /**
+     * Reconnect subscriptions that were enabled (ws_enabled: true) on page load
+     */
+    reconnectEnabledSubscriptions() {
+        const urls = this.storage.getAllRdsUrls();
+        urls.filter(e => e.ws_enabled).forEach(e => {
+            this.connectRdsSubscription(e.url, false);
+        });
+    }
+
+    /**
+     * Connect a RDS WebSocket subscription
+     * @param {string} url - RDS base URL
+     * @param {boolean} setEnabled - whether to persist ws_enabled: true in storage
+     */
+    connectRdsSubscription(url, setEnabled) {
+        // Disconnect existing subscription for this URL if any
+        this.disconnectRdsSubscription(url);
+
+        if (setEnabled) {
+            this.storage.setRdsWsEnabled(url, true);
+        }
+
+        const sub = new RDSSubscription(url, {
+            onGrain: (resourcePath, items) => this.handleGrain(url, resourcePath, items), // url passed for future per-RDS filtering
+            onStatusChange: () => {
+                this.updateWsStatusIndicator();
+                // Refresh RDS tab if open
+                const rdsTab = document.getElementById('rdsTab');
+                if (rdsTab && rdsTab.classList.contains('active')) {
+                    this.loadRdsTab();
+                }
+            }
+        });
+
+        this.rdsSubscriptions.set(url, sub);
+        this.updateWsStatusIndicator();
+
+        sub.connect().catch(err => {
+            console.warn('WS subscription failed:', err);
+        });
+    }
+
+    /**
+     * Disconnect and remove a RDS WebSocket subscription
+     * @param {string} url
+     * @param {boolean} setDisabled - whether to persist ws_enabled: false in storage
+     */
+    disconnectRdsSubscription(url, setDisabled = false) {
+        const sub = this.rdsSubscriptions.get(url);
+        if (sub) {
+            sub.disconnect();
+            this.rdsSubscriptions.delete(url);
+        }
+        if (setDisabled) {
+            this.storage.setRdsWsEnabled(url, false);
+        }
+        this.updateWsStatusIndicator();
+    }
+
+    /**
+     * Toggle WS subscription for a RDS URL (called from RDS tab)
+     */
+    handleRdsWsToggle(url) {
+        const sub = this.rdsSubscriptions.get(url);
+        if (sub && sub.status !== 'disconnected') {
+            this.disconnectRdsSubscription(url, true);
+            this.showToast('RDS subscription disconnected', 'info');
+        } else {
+            this.connectRdsSubscription(url, true);
+            this.showToast('RDS subscription connecting...', 'info');
+        }
+        this.loadRdsTab();
+    }
+
+    /**
+     * Handle incoming IS-04 grain message from RDS WebSocket
+     */
+    handleGrain(_rdsUrl, resourcePath, items) {
+        // Suppress auto-refresh for 3 seconds after a user-initiated action
+        // to avoid flickering caused by our own IS-05 PATCH triggering a grain
+        const suppressMs = 3000;
+        const isSuppressed = (Date.now() - this._lastUserAction) < suppressMs;
+
+        if (resourcePath === '/nodes') {
+            items.forEach(item => {
+                if (!item.pre && item.post) {
+                    const label = item.post.label || item.post.id;
+                    this.showToast(`New node in registry: ${label}`, 'info');
+                } else if (item.pre && !item.post) {
+                    const label = item.pre.label || item.pre.id;
+                    this.showToast(`Node left registry: ${label}`, 'warning');
+                }
+            });
+        } else if (resourcePath === '/senders') {
+            if (this.senderNode && !isSuppressed) {
+                // Only refresh if the changed sender belongs to the displayed node
+                const displayedIds = new Set(this.senderNode.senders.map(s => s.id));
+                const relevant = items.some(item => displayedIds.has(item.path));
+                if (relevant) {
+                    clearTimeout(this._refreshDebounce.sender);
+                    this._refreshDebounce.sender = setTimeout(() => this.refreshSenderNode(), 800);
+                }
+            }
+        } else if (resourcePath === '/receivers') {
+            if (this.receiverNode && !isSuppressed) {
+                // Only refresh if the changed receiver belongs to the displayed node
+                const displayedIds = new Set(this.receiverNode.receivers.map(r => r.id));
+                const relevant = items.some(item => displayedIds.has(item.path));
+                if (relevant) {
+                    clearTimeout(this._refreshDebounce.receiver);
+                    this._refreshDebounce.receiver = setTimeout(() => this.refreshReceiverNode(), 800);
+                }
+            }
+        }
+    }
+
+    /**
+     * Update the WS status indicator in the header
+     */
+    updateWsStatusIndicator() {
+        const indicator = document.getElementById('wsStatusIndicator');
+        const label = document.getElementById('wsStatusLabel');
+        if (!indicator) return;
+
+        if (this.rdsSubscriptions.size === 0) {
+            indicator.classList.add('hidden');
+            return;
+        }
+
+        indicator.classList.remove('hidden');
+        const statuses = Array.from(this.rdsSubscriptions.values()).map(s => s.status);
+
+        indicator.className = 'ws-status-indicator';
+        if (statuses.some(s => s === 'connected')) {
+            indicator.classList.add('connected');
+            if (label) label.textContent = 'RDS Live';
+        } else if (statuses.some(s => s === 'connecting' || s === 'reconnecting')) {
+            indicator.classList.add('connecting');
+            if (label) label.textContent = 'RDS...';
+        } else if (statuses.some(s => s === 'error')) {
+            indicator.classList.add('error');
+            if (label) label.textContent = 'RDS Error';
+        } else {
+            if (label) label.textContent = 'RDS';
+        }
     }
 
     /**

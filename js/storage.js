@@ -175,6 +175,17 @@ export class StorageManager {
         localStorage.setItem(STORAGE_KEYS.RDS_URLS, JSON.stringify(urls));
     }
 
+    /**
+     * Set WebSocket subscription enabled flag for a RDS URL
+     */
+    setRdsWsEnabled(url, enabled) {
+        const urls = this.getAllRdsUrls();
+        const idx = urls.findIndex(e => e.url === url);
+        if (idx === -1) return;
+        urls[idx].ws_enabled = enabled;
+        localStorage.setItem(STORAGE_KEYS.RDS_URLS, JSON.stringify(urls));
+    }
+
     // ===== HISTORY =====
 
     /**
@@ -344,6 +355,7 @@ export class StorageManager {
         return {
             nodes: this.nodes,
             history: this.history,
+            rds_urls: this.getAllRdsUrls(),
             settings: this.getSettings(),
             exported_at: new Date().toISOString()
         };
@@ -360,6 +372,9 @@ export class StorageManager {
         if (data.history) {
             this.history = data.history;
             this.saveHistory();
+        }
+        if (data.rds_urls) {
+            localStorage.setItem(STORAGE_KEYS.RDS_URLS, JSON.stringify(data.rds_urls));
         }
         if (data.settings) {
             this.saveSettings(data.settings);

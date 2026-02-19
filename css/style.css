@@ -790,9 +790,29 @@ body {
     border-radius: 16px;
     max-width: 500px;
     width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow-lg);
     animation: modalSlideIn 0.3s ease-out;
+}
+
+.modal-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
 }
 
 .modal-large {
@@ -964,7 +984,7 @@ body {
 }
 
 #rdsNodes {
-    max-height: 50vh;
+    max-height: 35vh;
     overflow-y: auto;
     margin-bottom: 20px;
     border: 1px solid var(--border-color);
@@ -2377,3 +2397,177 @@ body {
         flex: 1;
     }
 }
+
+/* Nodes Tab */
+.nodes-tab-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+}
+
+.nodes-count {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.nodes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.nodes-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.nodes-list::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 3px;
+}
+
+.nodes-list::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.node-manage-item {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: border-color 0.2s;
+}
+
+.node-manage-item:hover {
+    border-color: var(--accent-primary);
+}
+
+.node-manage-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.node-manage-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 15px;
+}
+
+.node-manage-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.node-manage-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.node-manage-url {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 12px;
+    color: var(--accent-primary);
+}
+
+.node-manage-stats {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.node-manage-date {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* RDS URL input with custom recent dropdown */
+.url-input-wrapper {
+    position: relative;
+    display: flex;
+}
+
+.url-input-wrapper input {
+    flex: 1;
+    border-radius: 8px;
+}
+
+.url-input-wrapper.has-dropdown input {
+    border-radius: 8px 0 0 8px;
+}
+
+.url-dropdown-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.url-dropdown-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.url-dropdown-btn svg {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.2s;
+}
+
+.url-dropdown-btn.open svg {
+    transform: rotate(180deg);
+}
+
+.url-dropdown-list {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+    list-style: none;
+    margin: 0;
+    padding: 4px 0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.url-dropdown-list.open {
+    display: block;
+}
+
+.url-dropdown-list li {
+    padding: 9px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: monospace;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.url-dropdown-list li:hover {
+    background: var(--bg-hover);
+}
+

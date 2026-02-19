@@ -219,9 +219,16 @@
             <form id="connectRdsForm" style="display: block;">
                 <div class="form-group">
                     <label for="rdsUrl">Registry Query API URL</label>
-                    <input type="url" id="rdsUrl" name="rdsUrl" placeholder="http://192.168.1.100:3001" required>
+                    <div class="url-input-wrapper" id="rdsUrlWrapper">
+                        <input type="url" id="rdsUrl" name="rdsUrl" placeholder="http://192.168.1.100:3001" required autocomplete="off">
+                        <button type="button" id="rdsRecentToggle" class="url-dropdown-btn" title="Recent URLs" style="display:none;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                        </button>
+                        <ul id="rdsRecentDropdown" class="url-dropdown-list"></ul>
+                    </div>
                     <small>Enter the NMOS IS-04 Query API URL </small>
-                    <!-- <small class="port-helper">Don't know the port number? Try <a href="https://taqq505.github.io/nmos-port-explorer-gui/" target="_blank" rel="noopener">Port Explorer</a></small> -->
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="cancelConnectRds">Cancel</button>
@@ -285,6 +292,21 @@
                         </svg>
                         Patch History
                     </button>
+                    <button class="settings-tab" data-tab="nodes">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="16"/>
+                            <line x1="8" y1="12" x2="16" y2="12"/>
+                        </svg>
+                        Nodes
+                    </button>
+                    <button class="settings-tab" data-tab="rds">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
+                        </svg>
+                        RDS
+                    </button>
                     <button class="settings-tab" data-tab="reset">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
@@ -331,6 +353,22 @@
                             <p>No patch history</p>
                         </div>
                     </div>
+                </div>
+
+                <!-- Tab Content: Nodes -->
+                <div id="nodesTab" class="settings-tab-content">
+                    <div class="nodes-tab-header">
+                        <span id="nodesTabCount" class="nodes-count"></span>
+                    </div>
+                    <div id="nodesContent" class="nodes-list"></div>
+                </div>
+
+                <!-- Tab Content: RDS -->
+                <div id="rdsTab" class="settings-tab-content">
+                    <div class="nodes-tab-header">
+                        <span id="rdsTabCount" class="nodes-count"></span>
+                    </div>
+                    <div id="rdsContent" class="nodes-list"></div>
                 </div>
 
                 <!-- Tab Content: Reset -->

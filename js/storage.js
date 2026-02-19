@@ -5,7 +5,8 @@
 
 const STORAGE_KEYS = {
     NODES: 'nmos_bcc_nodes',
-    HISTORY: 'nmos_bcc_history'
+    HISTORY: 'nmos_bcc_history',
+    RDS_URLS: 'nmos_bcc_rds_urls'
 };
 
 export class StorageManager {
@@ -140,6 +141,38 @@ export class StorageManager {
         const node = this.getNode(nodeId);
         if (!node || !node.patch_paths) return null;
         return node.patch_paths[receiverId];
+    }
+
+    // ===== RDS URLS =====
+
+    /**
+     * Get all saved RDS URLs (most recently used first)
+     */
+    getAllRdsUrls() {
+        try {
+            const data = localStorage.getItem(STORAGE_KEYS.RDS_URLS);
+            return data ? JSON.parse(data) : [];
+        } catch {
+            return [];
+        }
+    }
+
+    /**
+     * Save an RDS URL (add or update last_used, keep max 10)
+     */
+    saveRdsUrl(url) {
+        const urls = this.getAllRdsUrls().filter(entry => entry.url !== url);
+        urls.unshift({ url, last_used: new Date().toISOString() });
+        const trimmed = urls.slice(0, 10);
+        localStorage.setItem(STORAGE_KEYS.RDS_URLS, JSON.stringify(trimmed));
+    }
+
+    /**
+     * Remove a saved RDS URL
+     */
+    removeRdsUrl(url) {
+        const urls = this.getAllRdsUrls().filter(entry => entry.url !== url);
+        localStorage.setItem(STORAGE_KEYS.RDS_URLS, JSON.stringify(urls));
     }
 
     // ===== HISTORY =====

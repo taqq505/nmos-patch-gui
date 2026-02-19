@@ -151,6 +151,34 @@ class BCCApplication {
             this.handleSelectAllNodes(e.target.checked);
         });
 
+        // RDS recent dropdown toggle
+        document.getElementById('rdsRecentToggle').addEventListener('click', (e) => {
+            e.preventDefault();
+            const toggle = e.currentTarget;
+            const list = document.getElementById('rdsRecentDropdown');
+            const isOpen = list.classList.contains('open');
+            list.classList.toggle('open', !isOpen);
+            toggle.classList.toggle('open', !isOpen);
+        });
+
+        // RDS recent dropdown item click
+        document.getElementById('rdsRecentDropdown').addEventListener('click', (e) => {
+            const li = e.target.closest('li');
+            if (li && li.dataset.url) {
+                document.getElementById('rdsUrl').value = li.dataset.url;
+                document.getElementById('rdsRecentDropdown').classList.remove('open');
+                document.getElementById('rdsRecentToggle').classList.remove('open');
+            }
+        });
+
+        // Close RDS dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#rdsUrlWrapper')) {
+                document.getElementById('rdsRecentDropdown').classList.remove('open');
+                document.getElementById('rdsRecentToggle').classList.remove('open');
+            }
+        });
+
         // Settings tabs
         document.querySelectorAll('.settings-tab').forEach(tab => {
             tab.addEventListener('click', (e) => {
@@ -1457,9 +1485,13 @@ class BCCApplication {
             content.classList.toggle('active', content.id === `${tabName}Tab`);
         });
 
-        // Load history when switching to history tab
+        // Load content for tab
         if (tabName === 'history') {
             this.loadHistory();
+        } else if (tabName === 'nodes') {
+            this.loadNodesTab();
+        } else if (tabName === 'rds') {
+            this.loadRdsTab();
         }
     }
 
@@ -1575,6 +1607,231 @@ class BCCApplication {
     }
 
     /**
+     * Load nodes tab content
+     */
+    loadNodesTab() {
+        const content = document.getElementById('nodesContent');
+        const countEl = document.getElementById('nodesTabCount');
+        const nodes = this.storage.getAllNodes();
+
+        countEl.textContent = `${nodes.length} node${nodes.length !== 1 ? 's' : ''} registered`;
+
+        if (nodes.length === 0) {
+            content.innerHTML = `
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="16"/>
+                        <line x1="8" y1="12" x2="16" y2="12"/>
+                    </svg>
+                    <p>No nodes registered</p>
+                    <small>Use "Add Node" or "Connect RDS" to add nodes</small>
+                </div>
+            `;
+            return;
+        }
+
+        content.innerHTML = nodes.map(node => `
+            <div class="node-manage-item" data-id="${node.id}">
+                <div class="node-manage-header">
+                    <div class="node-manage-name">${this.escapeHtml(node.name)}</div>
+                    <div class="node-manage-actions">
+                        <button class="btn btn-small node-refresh-btn" data-id="${node.id}" title="Re-sync from IS-04">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                <polyline points="23 4 23 10 17 10"/>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                            </svg>
+                            Re-sync
+                        </button>
+                        <button class="btn btn-small btn-danger node-delete-btn" data-id="${node.id}" title="Delete node">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                            Delete
+                        </button>
+                    </div>
+                </div>
+                <div class="node-manage-info">
+                    <span class="node-manage-url">${this.escapeHtml(node.is04_url)}</span>
+                    <span class="node-manage-stats">
+                        ${node.senders ? node.senders.length : 0} senders &nbsp;/&nbsp; ${node.receivers ? node.receivers.length : 0} receivers
+                    </span>
+                </div>
+                ${node.added_at ? `<div class="node-manage-date">Added: ${new Date(node.added_at).toLocaleString()}</div>` : ''}
+            </div>
+        `).join('');
+
+        // Wire up buttons
+        content.querySelectorAll('.node-delete-btn').forEach(btn => {
+            btn.addEventListener('click', () => this.handleDeleteNode(btn.dataset.id));
+        });
+        content.querySelectorAll('.node-refresh-btn').forEach(btn => {
+            btn.addEventListener('click', () => this.handleRefreshNode(btn.dataset.id));
+        });
+    }
+
+    /**
+     * Delete a node from storage
+     */
+    handleDeleteNode(nodeId) {
+        const node = this.storage.getNode(nodeId);
+        if (!node) return;
+
+        if (!confirm(`Delete node "${node.name}"?\nThis cannot be undone.`)) return;
+
+        this.storage.removeNode(nodeId);
+
+        // If this node is currently selected, deselect it
+        if (this.senderNode && this.senderNode.id === nodeId) {
+            this.senderNode = null;
+            this.senderClient = null;
+            this.selectedSender = null;
+            this.renderSenders([]);
+        }
+        if (this.receiverNode && this.receiverNode.id === nodeId) {
+            this.receiverNode = null;
+            this.receiverClient = null;
+            this.selectedReceiver = null;
+            this.renderReceivers([]);
+        }
+
+        this.loadNodes();
+        this.updateTakeButton();
+        this.loadNodesTab();
+        this.showToast(`Node "${node.name}" deleted`, 'success');
+    }
+
+    /**
+     * Re-sync a node from its IS-04 endpoint
+     */
+    async handleRefreshNode(nodeId) {
+        const node = this.storage.getNode(nodeId);
+        if (!node) return;
+
+        // Disable the button during refresh
+        const btn = document.querySelector(`.node-refresh-btn[data-id="${nodeId}"]`);
+        if (btn) btn.disabled = true;
+
+        try {
+            const client = new NMOSClient(node.is04_url);
+            await client.initialize();
+
+            const [senders, receivers] = await Promise.all([
+                client.getSenders(),
+                client.getReceivers()
+            ]);
+
+            this.storage.updateNode(nodeId, {
+                is05_url: client.is05BaseUrl,
+                version: client.version,
+                is05_version: client.is05Version,
+                senders,
+                receivers
+            });
+
+            // Update in-memory client if currently selected
+            if (this.senderNode && this.senderNode.id === nodeId) {
+                this.senderNode = this.storage.getNode(nodeId);
+                this.senderClient.version = client.version;
+                this.senderClient.is05BaseUrl = client.is05BaseUrl;
+                this.senderClient.is05Version = client.is05Version;
+                this.renderSenders(senders);
+            }
+            if (this.receiverNode && this.receiverNode.id === nodeId) {
+                this.receiverNode = this.storage.getNode(nodeId);
+                this.receiverClient.version = client.version;
+                this.receiverClient.is05BaseUrl = client.is05BaseUrl;
+                this.receiverClient.is05Version = client.is05Version;
+                this.renderReceivers(receivers);
+            }
+
+            this.loadNodesTab();
+            this.showToast(`"${node.name}" re-synced (${senders.length} senders, ${receivers.length} receivers)`, 'success');
+
+        } catch (error) {
+            this.showToast(`Re-sync failed: ${error.message}`, 'error');
+            if (btn) btn.disabled = false;
+        }
+    }
+
+    /**
+     * Load RDS tab content
+     */
+    loadRdsTab() {
+        const content = document.getElementById('rdsContent');
+        const countEl = document.getElementById('rdsTabCount');
+        const urls = this.storage.getAllRdsUrls();
+
+        countEl.textContent = `${urls.length} RDS saved`;
+
+        if (urls.length === 0) {
+            content.innerHTML = `
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
+                    </svg>
+                    <p>No RDS saved</p>
+                    <small>Use "Connect RDS" to discover and register nodes</small>
+                </div>
+            `;
+            return;
+        }
+
+        content.innerHTML = urls.map(entry => `
+            <div class="node-manage-item">
+                <div class="node-manage-header">
+                    <div class="node-manage-url" style="font-size:14px; color: var(--text-primary);">${this.escapeHtml(entry.url)}</div>
+                    <div class="node-manage-actions">
+                        <button class="btn btn-small rds-resync-btn" data-url="${this.escapeHtml(entry.url)}" title="Re-sync nodes from this RDS">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                <polyline points="23 4 23 10 17 10"/>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                            </svg>
+                            Re-sync
+                        </button>
+                        <button class="btn btn-small btn-danger rds-delete-btn" data-url="${this.escapeHtml(entry.url)}" title="Remove saved RDS">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                            Delete
+                        </button>
+                    </div>
+                </div>
+                <div class="node-manage-date">Last used: ${new Date(entry.last_used).toLocaleString()}</div>
+            </div>
+        `).join('');
+
+        // Wire up buttons
+        content.querySelectorAll('.rds-delete-btn').forEach(btn => {
+            btn.addEventListener('click', () => this.handleDeleteRdsUrl(btn.dataset.url));
+        });
+        content.querySelectorAll('.rds-resync-btn').forEach(btn => {
+            btn.addEventListener('click', () => this.handleRdsResync(btn.dataset.url));
+        });
+    }
+
+    /**
+     * Delete a saved RDS URL
+     */
+    handleDeleteRdsUrl(url) {
+        this.storage.removeRdsUrl(url);
+        this.loadRdsTab();
+        this.showToast('RDS removed', 'success');
+    }
+
+    /**
+     * Open Connect RDS modal pre-filled with a saved URL
+     */
+    handleRdsResync(url) {
+        document.getElementById('settingsModal').classList.remove('active');
+        this.openConnectRdsModal();
+        document.getElementById('rdsUrl').value = url;
+    }
+
+    /**
      * Toggle history details visibility
      */
     toggleHistoryDetails(index) {
@@ -1654,7 +1911,37 @@ class BCCApplication {
         form.style.display = 'block';
         progress.style.display = 'none';
         nodeList.style.display = 'none';
+
+        // Populate recent RDS dropdown and close it
+        this.populateRdsRecentSelect();
+        document.getElementById('rdsRecentDropdown').classList.remove('open');
+        document.getElementById('rdsRecentToggle').classList.remove('open');
+
         modal.classList.add('active');
+    }
+
+    /**
+     * Populate the Recent RDS dropdown for the URL input
+     */
+    populateRdsRecentSelect() {
+        const toggle = document.getElementById('rdsRecentToggle');
+        const list = document.getElementById('rdsRecentDropdown');
+        const wrapper = document.getElementById('rdsUrlWrapper');
+        const urls = this.storage.getAllRdsUrls();
+
+        if (urls.length === 0) {
+            toggle.style.display = 'none';
+            wrapper.classList.remove('has-dropdown');
+            list.classList.remove('open');
+            list.innerHTML = '';
+            return;
+        }
+
+        toggle.style.display = 'flex';
+        wrapper.classList.add('has-dropdown');
+        list.innerHTML = urls.map(entry =>
+            `<li data-url="${this.escapeHtml(entry.url)}">${this.escapeHtml(entry.url)}</li>`
+        ).join('');
     }
 
     /**
@@ -1685,6 +1972,9 @@ class BCCApplication {
             if (nodes.length === 0) {
                 throw new Error('No nodes found in registry');
             }
+
+            // Save RDS URL to history
+            this.storage.saveRdsUrl(rdsUrl);
 
             // Store discovered nodes temporarily
             this.discoveredNodes = nodes;

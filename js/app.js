@@ -1452,7 +1452,7 @@ class BCCApplication {
             ]);
 
             // Save node
-            const node = this.storage.addNode({
+            this.storage.addNode({
                 name: nodeName,
                 is04_url: is04Url,
                 is05_url: client.is05BaseUrl,
@@ -2108,9 +2108,12 @@ class BCCApplication {
      */
     renderRdsNodes(nodes) {
         const container = document.getElementById('rdsNodes');
+        const registeredUrls = new Set(this.storage.getAllNodes().map(n => n.is04_url));
 
-        container.innerHTML = nodes.map((node, index) => `
-            <div class="rds-node-item" data-index="${index}">
+        container.innerHTML = nodes.map((node, index) => {
+            const isRegistered = registeredUrls.has(node.is04_url);
+            return `
+            <div class="rds-node-item${isRegistered ? ' rds-node-registered' : ''}" data-index="${index}">
                 <input type="checkbox" id="rds-node-${index}" class="rds-checkbox">
                 <label for="rds-node-${index}" class="rds-node-details">
                     <div class="rds-node-label">${this.escapeHtml(node.label)}</div>
@@ -2120,8 +2123,9 @@ class BCCApplication {
                     </div>
                     ${node.description ? `<div class="rds-node-description">${this.escapeHtml(node.description)}</div>` : ''}
                 </label>
-            </div>
-        `).join('');
+                ${isRegistered ? '<span class="rds-node-registered-badge">✓ Added</span>' : ''}
+            </div>`;
+        }).join('');
 
         // Add change listeners to update "Select All" checkbox state
         container.querySelectorAll('.rds-checkbox').forEach(checkbox => {

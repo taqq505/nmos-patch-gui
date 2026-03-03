@@ -819,6 +819,18 @@ body {
     max-width: 800px;
 }
 
+/* Settings modal — fixed size, flex column */
+#settingsModal .modal-content {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: 75vh;
+}
+
+#settingsModal .modal-header {
+    flex-shrink: 0;
+}
+
 @keyframes modalSlideIn {
     from {
         opacity: 0;
@@ -1029,6 +1041,24 @@ body {
     background: var(--bg-hover);
 }
 
+.rds-node-registered:hover {
+    background: transparent;
+    cursor: default;
+}
+
+.rds-node-registered .rds-checkbox,
+.rds-node-registered .rds-node-details {
+    opacity: 0.35;
+}
+
+.rds-node-registered-badge {
+    margin-left: auto;
+    font-size: 11px;
+    color: #4ade80;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
 .rds-node-item input[type="checkbox"] {
     width: 18px;
     height: 18px;
@@ -1168,38 +1198,49 @@ body {
     animation: spin 1s linear infinite;
 }
 
-/* Settings */
-.settings-content {
-    padding: 0;
+/* Settings - sidebar layout */
+.settings-modal-body {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
 }
 
-.settings-tabs {
-    display: flex;
-    border-bottom: 2px solid var(--border-color);
+.settings-sidebar {
+    width: 130px;
+    flex-shrink: 0;
     background: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    padding: 8px 0;
+    gap: 2px;
+    overflow-y: auto;
 }
 
 .settings-tab {
-    flex: 1;
-    padding: 16px 24px;
+    width: 100%;
+    padding: 10px 16px;
     background: transparent;
     border: none;
+    border-right: 3px solid transparent;
     color: var(--text-secondary);
     cursor: pointer;
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 8px;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
     transition: var(--transition);
-    border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
+    text-align: left;
+    white-space: nowrap;
 }
 
 .settings-tab svg {
-    width: 18px;
-    height: 18px;
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    opacity: 0.7;
 }
 
 .settings-tab:hover {
@@ -1207,10 +1248,42 @@ body {
     color: var(--text-primary);
 }
 
+.settings-tab:hover svg {
+    opacity: 1;
+}
+
 .settings-tab.active {
     color: var(--accent-primary);
-    border-bottom-color: var(--accent-primary);
+    border-right-color: var(--accent-primary);
     background: var(--bg-tertiary);
+    font-weight: 600;
+}
+
+.settings-tab.active svg {
+    opacity: 1;
+}
+
+.settings-panel {
+    flex: 1;
+    overflow-y: auto;
+    min-width: 0;
+}
+
+.settings-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.settings-panel::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.settings-panel::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.settings-panel::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
 }
 
 .settings-tab-content {
@@ -1914,27 +1987,6 @@ body {
 
 /* History */
 .history-list {
-    max-height: 60vh;
-    overflow-y: auto;
-}
-
-.history-list::-webkit-scrollbar {
-    width: 10px;
-}
-
-.history-list::-webkit-scrollbar-track {
-    background: var(--bg-secondary);
-    border-radius: 5px;
-}
-
-.history-list::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, var(--accent-primary), var(--accent-secondary));
-    border-radius: 5px;
-    border: 2px solid var(--bg-secondary);
-}
-
-.history-list::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, #00e5ff, #8b4aff);
 }
 
 .history-item {
@@ -2443,23 +2495,8 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    max-height: 60vh;
-    overflow-y: auto;
 }
 
-.nodes-list::-webkit-scrollbar {
-    width: 6px;
-}
-
-.nodes-list::-webkit-scrollbar-track {
-    background: var(--bg-secondary);
-    border-radius: 3px;
-}
-
-.nodes-list::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 3px;
-}
 
 .node-manage-item {
     background: var(--bg-tertiary);
@@ -2545,6 +2582,12 @@ body {
     color: var(--text-muted);
     cursor: pointer;
     transition: background 0.2s, color 0.2s;
+    animation: dropdown-hint 2.4s ease-in-out 0.8s 3;
+}
+
+@keyframes dropdown-hint {
+    0%, 100% { color: var(--text-muted); }
+    50% { color: var(--accent-primary); }
 }
 
 .url-dropdown-btn:hover {

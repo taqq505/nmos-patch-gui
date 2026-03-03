@@ -139,7 +139,7 @@
                 <div class="connection-status">
                     <div class="status-indicator"></div>
                     <span id="statusText">Select sender and receiver</span>
-                    <a id="corsHelpLink" class="status-link hidden" href="#">CORS対処</a>
+                    <a id="corsHelpLink" class="status-link hidden" href="#">CORS Help</a>
                 </div>
             </div>
 
@@ -286,15 +286,15 @@
                 <h2>Settings</h2>
                 <button class="modal-close">&times;</button>
             </div>
-            <div class="settings-content">
-                <!-- Tabs -->
-                <div class="settings-tabs">
+            <div class="settings-modal-body">
+                <!-- Sidebar -->
+                <nav class="settings-sidebar">
                     <button class="settings-tab active" data-tab="history">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10"/>
                             <polyline points="12 6 12 12 16 14"/>
                         </svg>
-                        Patch History
+                        <span>History</span>
                     </button>
                     <button class="settings-tab" data-tab="nodes">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -302,14 +302,14 @@
                             <line x1="12" y1="8" x2="12" y2="16"/>
                             <line x1="8" y1="12" x2="16" y2="12"/>
                         </svg>
-                        Nodes
+                        <span>Nodes</span>
                     </button>
                     <button class="settings-tab" data-tab="rds">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="3"/>
                             <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
                         </svg>
-                        RDS
+                        <span>RDS</span>
                     </button>
                     <button class="settings-tab" data-tab="backup">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -317,7 +317,7 @@
                             <polyline points="7 10 12 15 17 10"/>
                             <line x1="12" y1="15" x2="12" y2="3"/>
                         </svg>
-                        Backup
+                        <span>Backup</span>
                     </button>
                     <button class="settings-tab" data-tab="reset">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -326,7 +326,7 @@
                             <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
                             <path d="M3 21v-5h5"/>
                         </svg>
-                        Reset
+                        <span>Reset</span>
                     </button>
                     <button class="settings-tab" data-tab="cors">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -334,7 +334,7 @@
                             <path d="M12 8v4"/>
                             <path d="M12 16h.01"/>
                         </svg>
-                        CORS
+                        <span>CORS</span>
                     </button>
                     <button class="settings-tab" data-tab="howitworks">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -342,7 +342,7 @@
                             <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
                             <line x1="12" y1="17" x2="12.01" y2="17"/>
                         </svg>
-                        How It Works
+                        <span>Guide</span>
                     </button>
                     <button class="settings-tab" data-tab="about">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -350,9 +350,11 @@
                             <path d="M12 22V12"/>
                             <path d="M22 8L12 12 2 8"/>
                         </svg>
-                        About
+                        <span>About</span>
                     </button>
-                </div>
+                </nav>
+                <!-- Panel -->
+                <div class="settings-panel">
 
                 <!-- Tab Content: History -->
                 <div id="historyTab" class="settings-tab-content active">
@@ -688,9 +690,10 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
+                </div><!-- /.settings-panel -->
+            </div><!-- /.settings-modal-body -->
+        </div><!-- /.modal-content -->
+    </div><!-- /#settingsModal -->
 
     <!-- Enable/Disable Warning Modal -->
     <div id="enableWarningModal" class="modal hidden">

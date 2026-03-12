@@ -148,7 +148,7 @@ export class NMOSClient {
                 flow_id: s.flow_id,
                 transport: s.transport
             };
-        });
+        }).sort((a, b) => a.label.localeCompare(b.label));
     }
 
     /**
@@ -177,7 +177,7 @@ export class NMOSClient {
                 transport: r.transport,
                 caps: r.caps
             };
-        });
+        }).sort((a, b) => a.label.localeCompare(b.label));
     }
 
     /**
@@ -253,7 +253,7 @@ export class NMOSClient {
     /**
      * Get receiver's current staged parameters to determine transport_params count
      */
-    async getStagedParams(receiverId, stagedPath) {
+    async getStagedParams(_receiverId, stagedPath) {
         try {
             const staged = await this.fetchJSON(stagedPath, this.is05BaseUrl);
             const portCount = staged.transport_params ? staged.transport_params.length : 2;
@@ -307,7 +307,7 @@ export class NMOSClient {
 
         // Send PATCH
         console.log('Sending PATCH:', patchBody);
-        const response = await this.patchJSON(paths.stagedPath, patchBody, this.is05BaseUrl);
+        await this.patchJSON(paths.stagedPath, patchBody, this.is05BaseUrl);
 
         // Wait a moment for activation
         await new Promise(resolve => setTimeout(resolve, 1000));

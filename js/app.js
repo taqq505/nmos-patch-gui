@@ -24,6 +24,10 @@ class BCCApplication {
         this._refreshDebounce = { sender: null, receiver: null };
         this._lastUserAction = 0; // Timestamp of last user-initiated IS-05 action
 
+        // Request IDs to detect stale async responses
+        this._senderRequestId = 0;
+        this._receiverRequestId = 0;
+
         // Track which nodes have shown the enable/disable warning
         this.senderWarningShown = new Set();
         this.receiverWarningShown = new Set();
@@ -359,6 +363,7 @@ class BCCApplication {
         }
 
         this.senderNode = node;
+        const requestId = ++this._senderRequestId;
 
         try {
             // Create NMOS client
@@ -370,6 +375,8 @@ class BCCApplication {
             // Initialize client (if not already initialized)
             if (!node.version) {
                 await this.senderClient.initialize();
+
+                if (requestId !== this._senderRequestId) return;
 
                 // Update node with discovered info
                 this.storage.updateNode(nodeId, {
@@ -386,6 +393,9 @@ class BCCApplication {
 
             // Load senders
             const senders = await this.senderClient.getSenders();
+
+            if (requestId !== this._senderRequestId) return;
+
             this.storage.updateNode(nodeId, { senders });
             this.senderNode.senders = senders;
             this.renderSenders(senders);
@@ -393,14 +403,19 @@ class BCCApplication {
             // Fetch active connections for all senders
             await this.refreshSenderConnections();
 
+            if (requestId !== this._senderRequestId) return;
+
             this.showToast(`Sender node connected: ${node.name}`, 'success');
 
         } catch (error) {
+            if (requestId !== this._senderRequestId) return;
             console.error('Failed to select sender node:', error);
             this.showToast(`Failed to connect sender node: ${error.message}`, 'error');
             this.renderSenders([]);
         } finally {
-            this.setLoadingState(false, 'sender');
+            if (requestId === this._senderRequestId) {
+                this.setLoadingState(false, 'sender');
+            }
         }
     }
 
@@ -424,6 +439,7 @@ class BCCApplication {
         }
 
         this.receiverNode = node;
+        const requestId = ++this._receiverRequestId;
 
         try {
             // Create NMOS client
@@ -435,6 +451,8 @@ class BCCApplication {
             // Initialize client (if not already initialized)
             if (!node.version) {
                 await this.receiverClient.initialize();
+
+                if (requestId !== this._receiverRequestId) return;
 
                 // Update node with discovered info
                 this.storage.updateNode(nodeId, {
@@ -451,6 +469,9 @@ class BCCApplication {
 
             // Load receivers
             const receivers = await this.receiverClient.getReceivers();
+
+            if (requestId !== this._receiverRequestId) return;
+
             this.storage.updateNode(nodeId, { receivers });
             this.receiverNode.receivers = receivers;
             this.renderReceivers(receivers);
@@ -458,14 +479,19 @@ class BCCApplication {
             // Fetch active connections for all receivers
             await this.refreshReceiverConnections();
 
+            if (requestId !== this._receiverRequestId) return;
+
             this.showToast(`Receiver node connected: ${node.name}`, 'success');
 
         } catch (error) {
+            if (requestId !== this._receiverRequestId) return;
             console.error('Failed to select receiver node:', error);
             this.showToast(`Failed to connect receiver node: ${error.message}`, 'error');
             this.renderReceivers([]);
         } finally {
-            this.setLoadingState(false, 'receiver');
+            if (requestId === this._receiverRequestId) {
+                this.setLoadingState(false, 'receiver');
+            }
         }
     }
 

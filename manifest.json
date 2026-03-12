@@ -1,0 +1,18 @@
+{
+  "name": "NMOS Simple BCC",
+  "short_name": "BCC",
+  "description": "NMOS IS-04/IS-05 Broadcast Control Center for ST 2110 routing",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0f1428",
+  "theme_color": "#0f1428",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

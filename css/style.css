@@ -1207,7 +1207,7 @@ body {
 }
 
 .settings-sidebar {
-    width: 130px;
+    width: 145px;
     flex-shrink: 0;
     background: var(--bg-secondary);
     border-right: 1px solid var(--border-color);
@@ -2714,5 +2714,68 @@ body {
     color: #ef4444;
     border-color: #ef444444;
     background: #ef444411;
+}
+
+/* ── Install Tab ─────────────────────────────────────────────────── */
+.install-status-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 20px;
+}
+
+.install-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.install-status-badge svg {
+    width: 16px;
+    height: 16px;
+}
+
+.install-status-badge.installed {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.install-status-badge.installable {
+    background: rgba(0, 212, 255, 0.15);
+    color: var(--accent-primary);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.install-status-badge.unavailable {
+    background: rgba(100, 116, 139, 0.15);
+    color: var(--text-muted);
+    border: 1px solid rgba(100, 116, 139, 0.3);
+}
+
+.info-box {
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 4px solid var(--info);
+    padding: 16px;
+    margin: 16px 0;
+    border-radius: 8px;
+}
+
+.info-box strong {
+    display: block;
+    color: var(--info);
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.info-box p {
+    margin: 0;
+    color: var(--text-secondary);
 }
 

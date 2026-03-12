@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ST2110 BCC - Broadcast Control Center</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f1428">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NMOS BCC">
+    <link rel="apple-touch-icon" href="favicon.svg">
     <link rel="stylesheet" href="css/style.css">
 
     <!-- Google tag (gtag.js) -->
@@ -343,6 +350,14 @@
                         </svg>
                         <span>Guide</span>
                     </button>
+                    <button class="settings-tab" data-tab="install">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2v13"/>
+                            <path d="M5 9l7 7 7-7"/>
+                            <path d="M3 21h18"/>
+                        </svg>
+                        <span>Install &amp; Update</span>
+                    </button>
                     <button class="settings-tab" data-tab="about">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 2l10 6v8l-10 6-10-6V8l10-6z"/>
@@ -565,10 +580,96 @@
                     </div>
                 </div>
 
+                <!-- Tab Content: Install & Update -->
+                <div id="installTab" class="settings-tab-content">
+                    <h3>Install &amp; Update</h3>
+                    <p>Install NMOS Simple BCC as a standalone app for offline use.</p>
+
+                    <div id="installStatus" class="install-status">
+                        <div id="installStatusInstalled" class="install-status-card" style="display:none">
+                            <div class="install-status-badge installed">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                Installed
+                            </div>
+                            <p>NMOS Simple BCC is installed on this device. You can launch it from your desktop or app launcher.</p>
+                            <div class="info-box">
+                                <strong>To uninstall</strong>
+                                <p>Open the installed app → click <strong>⋮</strong> menu (top right) → Uninstall</p>
+                            </div>
+                        </div>
+
+                        <div id="installStatusReady" class="install-status-card" style="display:none">
+                            <div class="install-status-badge installable">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="7 10 12 15 17 10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                Ready to Install
+                            </div>
+                            <p>Click the button below to install the app on your device. It will work offline after installation.</p>
+                            <button id="installBtn" class="btn btn-primary" style="margin-top:16px">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="7 10 12 15 17 10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                Install App
+                            </button>
+                        </div>
+
+                        <div id="installStatusUnavailable" class="install-status-card">
+                            <div class="install-status-badge unavailable">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" y1="8" x2="12" y2="12"/>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                </svg>
+                                Not Available
+                            </div>
+                            <p>Installation is not available in this browser or the app is already installed. Try opening this page in Chrome.</p>
+                        </div>
+                    </div>
+
+                    <!-- Update Section -->
+                    <div class="install-status-card" style="margin-top:24px">
+                        <h4 style="margin-bottom:12px">App Update</h4>
+                        <p style="font-size:14px; color:var(--text-secondary); margin-bottom:16px">Check if a newer version of the app is available.</p>
+                        <div id="updateStatus" class="install-status-badge unavailable" style="margin-bottom:16px">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            <span id="updateStatusText">Not checked</span>
+                        </div>
+                        <div style="display:flex; gap:12px; flex-wrap:wrap">
+                            <button id="checkUpdateBtn" class="btn btn-secondary">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                                    <path d="M21 3v5h-5"/>
+                                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                                    <path d="M3 21v-5h5"/>
+                                </svg>
+                                Check for Updates
+                            </button>
+                            <button id="applyUpdateBtn" class="btn btn-primary" style="display:none">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="7 10 12 15 17 10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                Apply Update &amp; Reload
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Tab Content: About -->
                 <div id="aboutTab" class="settings-tab-content">
                     <div class="about-section">
-                        <h3>About NMOS Simple BCC <span class="version-tag">v2026.02.16</span></h3>
+                        <h3>About NMOS Simple BCC <span class="version-tag">v2026.03.12</span></h3>
                         <p>A lightweight, browser-only NMOS IS-04/IS-05 patching tool for ST 2110 routing.</p>
 
                         <h4>Links</h4>
@@ -785,5 +886,83 @@
     </div>
 
     <script type="module" src="js/app.js"></script>
+
+    <script>
+        // ── Service Worker Registration ──────────────────────────────
+        let swRegistration = null;
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(reg => { swRegistration = reg; })
+                    .catch(err => console.warn('SW registration failed:', err));
+            });
+        }
+
+        // ── Install Status ───────────────────────────────────────────
+        let deferredPrompt;
+
+        function showInstallStatus(status) {
+            document.getElementById('installStatusInstalled').style.display  = status === 'installed'   ? '' : 'none';
+            document.getElementById('installStatusReady').style.display      = status === 'ready'       ? '' : 'none';
+            document.getElementById('installStatusUnavailable').style.display = status === 'unavailable' ? '' : 'none';
+        }
+
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            showInstallStatus('installed');
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showInstallStatus('ready');
+        });
+
+        document.getElementById('installBtn').addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') showInstallStatus('installed');
+            deferredPrompt = null;
+        });
+
+        window.addEventListener('appinstalled', () => {
+            deferredPrompt = null;
+            showInstallStatus('installed');
+        });
+
+        // ── Update ───────────────────────────────────────────────────
+        function setUpdateStatus(type, text) {
+            const badge = document.getElementById('updateStatus');
+            badge.className = 'install-status-badge ' + type;
+            document.getElementById('updateStatusText').textContent = text;
+        }
+
+        document.getElementById('checkUpdateBtn').addEventListener('click', async () => {
+            if (!swRegistration) {
+                setUpdateStatus('unavailable', 'Service Worker not available');
+                return;
+            }
+            setUpdateStatus('installable', 'Checking...');
+            document.getElementById('applyUpdateBtn').style.display = 'none';
+            try {
+                await swRegistration.update();
+                if (swRegistration.waiting) {
+                    setUpdateStatus('installable', 'Update available!');
+                    document.getElementById('applyUpdateBtn').style.display = '';
+                } else {
+                    setUpdateStatus('installed', 'Already up to date');
+                }
+            } catch (e) {
+                setUpdateStatus('unavailable', 'Check failed (offline?)');
+            }
+        });
+
+        document.getElementById('applyUpdateBtn').addEventListener('click', () => {
+            if (swRegistration && swRegistration.waiting) {
+                swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+            location.reload();
+        });
+    </script>
 </body>
 </html>

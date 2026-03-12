@@ -1948,6 +1948,11 @@ class BCCApplication {
 
         this.storage.clearAll();
 
+        // Disconnect all RDS WebSocket subscriptions
+        this.rdsSubscriptions.forEach((sub) => sub.disconnect());
+        this.rdsSubscriptions.clear();
+        this.updateWsStatusIndicator();
+
         // Reset application state
         this.senderNode = null;
         this.senderClient = null;

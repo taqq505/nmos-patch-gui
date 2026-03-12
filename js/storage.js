@@ -390,5 +390,6 @@ export class StorageManager {
         this.saveNodes();
         this.saveHistory();
         localStorage.removeItem(STORAGE_KEYS.SETTINGS);
+        localStorage.removeItem(STORAGE_KEYS.RDS_URLS);
     }
 }

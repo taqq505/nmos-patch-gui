@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nmos-bcc-v2026.03.09';
+const CACHE_NAME = 'nmos-bcc-v2026.03.13';
 
 const FILES_TO_CACHE = [
     './',

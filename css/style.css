@@ -178,6 +178,7 @@ body {
     padding: 16px 24px;
     border-radius: 12px;
     border: 1px solid var(--border-color);
+    min-width: 0;
 }
 
 .node-selector label {
@@ -187,7 +188,8 @@ body {
 }
 
 .node-select {
-    flex: 1;
+    flex: 1 1 0;
+    min-width: 0;
     padding: 10px 16px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);

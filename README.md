@@ -62,6 +62,20 @@ https://taqq505.github.io/nmos-patch-gui/
 - **Import** on another PC to instantly restore your setup
   別のPCでインポートして即座に復元
 
+### Stream Deck Integration / Stream Deck 連携
+- **The Stream Deck plugin operates completely standalone** — no RDS server, no dedicated middleware, no extra software required
+  **Stream DeckプラグインはRDSサーバーや専用ソフト不要で単体動作**
+- The plugin communicates directly with NMOS devices via IS-04/IS-05 and executes TAKE independently
+  プラグインがNMOS機器へ直接IS-04/IS-05でアクセスしTAKEを単独実行
+- BCC is optional — once buttons are configured, Stream Deck works even without BCC running
+  BCCはあくまでオプション。ボタン設定後はBCCを起動しなくても動作する
+- When BCC is running with integration enabled, it sends the registered node list (`id`, `name`, `is04_url`) to the plugin via WebSocket for easy button setup
+  BCC連携ONの場合、登録済みノード一覧をWebSocket経由で送信しボタン設定を補助
+- **BCC integration is only compatible with this deployment**: https://taqq505.github.io/nmos-patch-gui/
+  **BCC連携は以下のURLのBCCとのみ対応**: https://taqq505.github.io/nmos-patch-gui/
+- Toggle on/off from Settings — saved in export JSON
+  設定画面でON/OFF切り替え可能、エクスポートJSONに保存
+
 ## CORS / CORS
 This UI sends PATCH directly to devices, so device-side CORS headers are required.
 ノードがCORS対応していない場合は、以下の方法でChromeを立ち上げ直してください。
@@ -109,7 +123,8 @@ nmos-patch-gui/
 │   ├── nmos-api.js         # NMOS IS-04/IS-05 API client
 │   ├── rds-subscription.js # RDS WebSocket subscription manager
 │   ├── sdp-parser.js       # SDP parser for ST2110 streams
-│   └── storage.js          # LocalStorage management
+│   ├── storage.js          # LocalStorage management
+│   └── streamdeck-bridge.js# Stream Deck WebSocket bridge
 └── README.md
 ```
 
@@ -124,8 +139,25 @@ nmos-patch-gui/
 - Stale request protection — rapid node switching no longer causes display glitches
 
 ### PWA
-- Cache-first strategy for app files, network-only for NMOS device requests
-- Forced update via SKIP_WAITING message from Install & Update tab
+- **Installed app**: cache-first strategy — stable until manually updated
+- **Browser**: network-first strategy — always fetches latest on reload
+- Auto-detects new version on page load and shows an update toast
+- Manual update available via the Install & Update tab in Settings
+- NMOS device requests always bypass the cache (network-only)
+
+### ST 2110-7 Redundant Stream Handling
+- Receiver's `transport_params` length is read before patching to detect redundancy support
+- **Sender -7 / Receiver -7**: both legs patched with primary and secondary addresses
+- **Sender -7 / Receiver non-7**: only primary leg used (array trimmed to length 1)
+- **Sender non-7 / Receiver -7**: primary patched, secondary explicitly set to `rtp_enabled: false`
+- **Sender non-7 / Receiver non-7**: single-leg patch
+
+### Stream Deck Integration
+- **Plugin is fully standalone** — no RDS, no middleware, no extra software needed. The plugin queries IS-04/IS-05 directly and executes TAKE on its own.
+- BCC is optional: once button assignments are saved to the plugin, BCC does not need to be running for TAKE to work
+- When BCC integration is enabled, BCC acts as a WebSocket client (`ws://localhost:57284`) and sends the node list (`id`, `name`, `is04_url`) to the plugin for convenient button setup
+- 5-second reconnect on disconnect, while integration is enabled
+- See `js/streamdeck-bridge.js` for implementation
 
 ### Browser Compatibility
 - Modern browsers with ES6+ support

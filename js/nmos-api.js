@@ -331,12 +331,14 @@ export class NMOSClient {
         const merged = [];
 
         for (let i = 0; i < receiverParams.length; i++) {
-            if (i < sdpParams.length && sdpParams[i].rtp_enabled) {
-                // Use SDP data for this port
+            if (i < sdpParams.length) {
+                // Trust what the SDP parser determined (rtp_enabled: true or false)
+                // For non-7 sender → -7 receiver, sdpParams[1] is {rtp_enabled:false}
+                // which explicitly disables the secondary leg
                 merged.push(sdpParams[i]);
             } else {
-                // Keep receiver's existing config (likely rtp_enabled: false)
-                merged.push(receiverParams[i]);
+                // Safety fallback: should not occur given SDPParser matches receiverPortCount
+                merged.push({ ...receiverParams[i], rtp_enabled: false });
             }
         }
 

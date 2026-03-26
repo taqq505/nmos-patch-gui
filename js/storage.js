@@ -6,7 +6,8 @@
 const STORAGE_KEYS = {
     NODES: 'nmos_bcc_nodes',
     HISTORY: 'nmos_bcc_history',
-    RDS_URLS: 'nmos_bcc_rds_urls'
+    RDS_URLS: 'nmos_bcc_rds_urls',
+    SETTINGS: 'nmos_bcc_settings'
 };
 
 export class StorageManager {
@@ -335,8 +336,21 @@ export class StorageManager {
             theme: 'dark',
             autoRefresh: false,
             refreshInterval: 30000, // 30 seconds
-            showNotifications: true
+            showNotifications: true,
+            streamdeck: { enabled: false }
         };
+    }
+
+    getStreamDeckEnabled() {
+        const settings = this.getSettings();
+        return settings.streamdeck?.enabled ?? false;
+    }
+
+    setStreamDeckEnabled(enabled) {
+        const settings = this.getSettings();
+        if (!settings.streamdeck) settings.streamdeck = {};
+        settings.streamdeck.enabled = enabled;
+        this.saveSettings(settings);
     }
 
     // ===== UTILITIES =====

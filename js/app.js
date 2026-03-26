@@ -6,6 +6,7 @@
 import { NMOSClient } from './nmos-api.js';
 import { StorageManager } from './storage.js';
 import { RDSSubscription } from './rds-subscription.js';
+import { StreamDeckBridge } from './streamdeck-bridge.js';
 
 class BCCApplication {
     constructor() {
@@ -32,6 +33,9 @@ class BCCApplication {
         this.senderWarningShown = new Set();
         this.receiverWarningShown = new Set();
 
+        // Stream Deck bridge
+        this.sdBridge = null;
+
         this.init();
     }
 
@@ -44,6 +48,7 @@ class BCCApplication {
         this.showWelcomeIfNeeded();
         this.checkCookieConsent();
         this.reconnectEnabledSubscriptions();
+        this.initStreamDeck();
     }
 
     /**
@@ -1490,6 +1495,7 @@ class BCCApplication {
 
             // Reload nodes
             this.loadNodes();
+            this.notifyStreamDeck();
 
             this.closeAddNodeModal();
             this.showToast(`Node "${nodeName}" added successfully`, 'success');
@@ -1746,6 +1752,7 @@ class BCCApplication {
         this.loadNodes();
         this.updateTakeButton();
         this.loadNodesTab();
+        this.notifyStreamDeck();
         this.showToast(`Node "${node.name}" deleted`, 'success');
     }
 
@@ -1921,6 +1928,69 @@ class BCCApplication {
     }
 
     /**
+     * Initialize Stream Deck bridge
+     */
+    initStreamDeck() {
+        const enabled = this.storage.getStreamDeckEnabled();
+
+        this.sdBridge = new StreamDeckBridge((status) => {
+            this.updateStreamDeckStatus(status);
+            if (status === 'connected') {
+                this.sdBridge.sendNodeList(this.storage.getAllNodes());
+            }
+        });
+
+        this.sdBridge.setEnabled(enabled);
+
+        const toggle = document.getElementById('streamdeckEnabled');
+        if (toggle) {
+            toggle.checked = enabled;
+            toggle.addEventListener('change', () => {
+                const val = toggle.checked;
+                this.storage.setStreamDeckEnabled(val);
+                this.sdBridge.setEnabled(val);
+            });
+        }
+    }
+
+    /**
+     * Update Stream Deck status badge in settings tab
+     */
+    updateStreamDeckStatus(status) {
+        const card = document.getElementById('streamdeckStatusCard');
+        const badge = document.getElementById('streamdeckStatusBadge');
+        const text = document.getElementById('streamdeckStatusText');
+        if (!card || !badge || !text) return;
+
+        if (status === 'off') {
+            card.style.display = 'none';
+            return;
+        }
+
+        card.style.display = 'block';
+        badge.className = 'install-status-badge';
+
+        if (status === 'connected') {
+            badge.classList.add('installed');
+            badge.querySelector('svg').innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+            text.textContent = 'Stream Deck Connected';
+        } else {
+            badge.classList.add('unavailable');
+            badge.querySelector('svg').innerHTML = '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
+            text.textContent = 'Stream Deck Not Connected';
+        }
+    }
+
+    /**
+     * Send current node list to Stream Deck plugin
+     */
+    notifyStreamDeck() {
+        if (this.sdBridge) {
+            this.sdBridge.sendNodeList(this.storage.getAllNodes());
+        }
+    }
+
+    /**
      * Handle clear history
      */
     handleClearHistory() {
@@ -1971,6 +2041,7 @@ class BCCApplication {
         // Close modal
         document.getElementById('settingsModal').classList.remove('active');
 
+        this.notifyStreamDeck();
         this.showToast('All application data has been reset', 'success');
     }
 
@@ -2028,6 +2099,7 @@ class BCCApplication {
 
             // Reconnect WS subscriptions that were enabled
             this.reconnectEnabledSubscriptions();
+            this.notifyStreamDeck();
 
             document.getElementById('settingsModal').classList.remove('active');
             this.showToast('Backup imported successfully', 'success');

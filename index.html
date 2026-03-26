@@ -325,6 +325,14 @@
                         </svg>
                         <span>Backup</span>
                     </button>
+                    <button class="settings-tab" data-tab="streamdeck">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2"/>
+                            <path d="M8 21h8"/>
+                            <path d="M12 17v4"/>
+                        </svg>
+                        <span>Stream Deck</span>
+                    </button>
                     <button class="settings-tab" data-tab="reset">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
@@ -429,6 +437,46 @@
                                 Import
                                 <input type="file" id="importDataInput" accept=".json" style="display:none;">
                             </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Stream Deck -->
+                <div id="streamdeckTab" class="settings-tab-content">
+                    <div class="reset-section">
+                        <div class="backup-header">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px">
+                                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                                <path d="M8 21h8"/>
+                                <path d="M12 17v4"/>
+                            </svg>
+                            <h3>Stream Deck Integration</h3>
+                        </div>
+                        <p>Connect to a Stream Deck plugin to control IS-05 routing from hardware buttons.</p>
+
+                        <div class="sd-setting-row">
+                            <div class="sd-setting-label">
+                                <span>Enable Integration</span>
+                                <small>Connects to Stream Deck plugin at ws://localhost:57284</small>
+                            </div>
+                            <label class="sd-toggle">
+                                <input type="checkbox" id="streamdeckEnabled">
+                                <span class="sd-toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div id="streamdeckStatusCard" class="install-status-card" style="margin-top:20px; display:none">
+                            <div id="streamdeckStatusBadge" class="install-status-badge unavailable">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" y1="8" x2="12" y2="12"/>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                </svg>
+                                <span id="streamdeckStatusText">Stream Deck Not Connected</span>
+                            </div>
+                            <p style="font-size:13px; color:var(--text-secondary); margin:0">
+                                Make sure the Stream Deck plugin is running. Reconnection is attempted every 5 seconds.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -669,7 +717,7 @@
                 <!-- Tab Content: About -->
                 <div id="aboutTab" class="settings-tab-content">
                     <div class="about-section">
-                        <h3>About NMOS Simple BCC <span class="version-tag">v2026.03.13</span></h3>
+                        <h3>About NMOS Simple BCC <span class="version-tag">v2026.03.25</span></h3>
                         <p>A lightweight, browser-only NMOS IS-04/IS-05 patching tool for ST 2110 routing.</p>
 
                         <h4>Links</h4>
@@ -856,6 +904,16 @@
 
     <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
+
+    <!-- Update Toast -->
+    <div id="updateToast" class="update-toast">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        <span>New version available</span>
+        <button id="updateToastBtn" class="update-toast-btn">Update now</button>
+    </div>
     <div id="corsAlert" class="cors-alert hidden">
         <div class="cors-alert-content">
             <span>CORS error — click here</span>
@@ -893,10 +951,41 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./service-worker.js')
-                    .then(reg => { swRegistration = reg; })
+                    .then(reg => {
+                        swRegistration = reg;
+
+                        // Check for updates on every page load
+                        reg.update();
+
+                        // Detect when a new SW has installed and is waiting
+                        reg.addEventListener('updatefound', () => {
+                            const newWorker = reg.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    showUpdateToast();
+                                }
+                            });
+                        });
+                    })
                     .catch(err => console.warn('SW registration failed:', err));
+
+                // Reload once the new SW has taken control
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    window.location.reload();
+                });
             });
         }
+
+        function showUpdateToast() {
+            document.getElementById('updateToast').classList.add('active');
+        }
+
+        document.getElementById('updateToastBtn').addEventListener('click', () => {
+            if (swRegistration && swRegistration.waiting) {
+                swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+            // controllerchange will trigger reload
+        });
 
         // ── Install Status ───────────────────────────────────────────
         let deferredPrompt;

@@ -23,6 +23,7 @@ node_modules/
 # Logs
 *.log
 npm-debug.log*
+nohup.out
 
 # Temporary files
 *.tmp

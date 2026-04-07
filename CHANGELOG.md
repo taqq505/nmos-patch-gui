@@ -1,6 +1,6 @@
 # Changelog
 
-## v2026.04.04
+## v2026.04.07
 
 ### New Features
 - **Stream Deck Integration** — WebSocket bridge to Stream Deck plugin (`ws://localhost:57284`). Plugin operates standalone without RDS or middleware.
@@ -13,6 +13,11 @@
 - **Staged PATCH path detection** — Fixed 405 error on devices that accept GET with trailing slash but reject PATCH with trailing slash (e.g. IS-05 v1.0 devices). Now verifies both GET and PATCH before confirming the path.
   **Staged PATCHパス検出の修正** — GETはスラッシュありで通るがPATCHはスラッシュありで405を返す機器（IS-05 v1.0機器など）への対応。GETとPATCHの両方を確認してからパスを確定するよう修正。
 
+---
+
+## v2026.04.04
+
+### Bug Fixes
 - **ST 2110-7 mergeTransportParams** — Fixed secondary leg incorrectly inheriting receiver's existing transport_params when sender is non-7.
   **ST 2110-7 mergeTransportParams修正** — 非-7 Senderのとき、SecondaryレッグがReceiverの既存 transport_params を引き継いでしまう問題を修正。
 

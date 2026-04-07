@@ -206,24 +206,36 @@ export class NMOSClient {
         let lastError = null;
 
         // Prefer a GET check first (some nodes reject partial PATCH bodies)
+        // Then verify the same path works for PATCH (some devices accept GET with slash but reject PATCH with slash)
         for (const suffix of suffixes) {
             const path = basePath + suffix;
             try {
                 const staged = await this.fetchJSON(path, this.is05BaseUrl);
                 console.log(`✅ GET path confirmed: ${path}`);
 
-                return {
-                    stagedPath: path,
-                    activePath: `/x-nmos/connection/${this.is05Version}/single/receivers/${receiverId}/active/`,
-                    currentState: staged
-                };
+                // Verify this path also accepts PATCH
+                try {
+                    await this.patchJSON(path, {
+                        activation: { mode: 'activate_immediate' },
+                        master_enable: false
+                    }, this.is05BaseUrl, false);
+                    console.log(`✅ PATCH also confirmed: ${path}`);
+                    return {
+                        stagedPath: path,
+                        activePath: `/x-nmos/connection/${this.is05Version}/single/receivers/${receiverId}/active/`,
+                        currentState: staged
+                    };
+                } catch (patchError) {
+                    console.log(`GET ok but PATCH failed for ${path}, trying other suffix`);
+                    lastError = patchError;
+                }
             } catch (error) {
                 console.log(`Failed to GET ${path}:`, error.message);
                 lastError = error;
             }
         }
 
-        // Fallback: Try with trailing slash first via PATCH probe
+        // Fallback: Try PATCH probe only
         for (const suffix of suffixes) {
             const path = basePath + suffix;
             try {
@@ -360,15 +372,29 @@ export class NMOSClient {
             }
 
             const versions = await versionsResponse.json();
-            const version = versions.sort().reverse()[0].replace(/\//g, '');
+            const sortedVersions = versions.map(v => v.replace(/\//g, '')).sort().reverse();
 
-            // Get all nodes from registry
-            const nodesResponse = await fetch(`${baseUrl}/x-nmos/query/${version}/nodes/`);
-            if (!nodesResponse.ok) {
-                throw new Error(`Failed to fetch nodes: ${nodesResponse.status}`);
+            // Query all versions and merge results (some RDS implementations
+            // only return nodes registered via the same version)
+            const nodeMap = new Map();
+            for (const version of sortedVersions) {
+                try {
+                    const nodesResponse = await fetch(`${baseUrl}/x-nmos/query/${version}/nodes/`);
+                    if (!nodesResponse.ok) continue;
+                    const versionNodes = await nodesResponse.json();
+                    for (const node of versionNodes) {
+                        if (!nodeMap.has(node.id)) nodeMap.set(node.id, node);
+                    }
+                } catch (e) {
+                    // Skip versions that fail
+                }
             }
 
-            const nodes = await nodesResponse.json();
+            if (nodeMap.size === 0) {
+                throw new Error('Failed to fetch nodes from any Query API version');
+            }
+
+            const nodes = Array.from(nodeMap.values());
 
             // Parse nodes and extract IS-04 endpoints
             return nodes.map(node => {

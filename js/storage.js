@@ -49,6 +49,7 @@ export class StorageManager {
         const nodeData = {
             id: this.generateId(),
             name: node.name,
+            type: node.type || 'is04',
             is04_url: node.is04_url,
             is05_url: node.is05_url,
             version: node.version,
@@ -63,6 +64,72 @@ export class StorageManager {
         this.nodes.push(nodeData);
         this.saveNodes();
         return nodeData;
+    }
+
+    // ===== SDP SOURCES =====
+
+    /**
+     * Get or create the special "SDP Sources" virtual node
+     */
+    getSdpSourcesNode() {
+        let node = this.nodes.find(n => n.type === 'sdp');
+        if (!node) {
+            node = {
+                id: 'sdp-sources',
+                name: 'SDP Sources',
+                type: 'sdp',
+                is04_url: null,
+                is05_url: null,
+                version: null,
+                is05_version: null,
+                senders: [],
+                receivers: [],
+                patch_paths: {},
+                added_at: new Date().toISOString(),
+                last_updated: new Date().toISOString()
+            };
+            this.nodes.push(node);
+            this.saveNodes();
+        }
+        return node;
+    }
+
+    /**
+     * Add a SDP sender to SDP Sources node
+     */
+    addSdpSender(label, sdpText) {
+        const node = this.getSdpSourcesNode();
+        const sender = {
+            id: this.generateId(),
+            label,
+            sdp_raw: sdpText,
+            format: this._detectSdpFormat(sdpText),
+            type: 'sdp'
+        };
+        node.senders.push(sender);
+        this.updateNode(node.id, { senders: node.senders });
+        return sender;
+    }
+
+    /**
+     * Remove a SDP sender
+     */
+    removeSdpSender(senderId) {
+        const node = this.getSdpSourcesNode();
+        node.senders = node.senders.filter(s => s.id !== senderId);
+        this.updateNode(node.id, { senders: node.senders });
+    }
+
+    /**
+     * Detect media format from SDP
+     */
+    _detectSdpFormat(sdpText) {
+        // ST 2110-40 (ancillary/metadata) is carried as "m=video" but rtpmap encoding is smpte291
+        if (/a=rtpmap:\d+\s+smpte291\//im.test(sdpText)) return 'data';
+        if (/^m=video/m.test(sdpText)) return 'video';
+        if (/^m=audio/m.test(sdpText)) return 'audio';
+        if (/^m=application/m.test(sdpText)) return 'data';
+        return 'unknown';
     }
 
     /**
@@ -142,6 +209,58 @@ export class StorageManager {
         const node = this.getNode(nodeId);
         if (!node || !node.patch_paths) return null;
         return node.patch_paths[receiverId];
+    }
+
+    // ===== RECEIVER LOCKS =====
+
+    /**
+     * Get resource settings for a receiver or sender
+     * Returns { locked: bool, local_label: string }
+     */
+    getReceiverLock(nodeId, receiverId) {
+        const node = this.getNode(nodeId);
+        if (!node || !node.resource_settings) return { locked: false, local_label: '' };
+        return node.resource_settings[receiverId] || { locked: false, local_label: '' };
+    }
+
+    /**
+     * Set lock state and local_label for a receiver
+     */
+    setReceiverLock(nodeId, receiverId, locked, local_label = '') {
+        const node = this.getNode(nodeId);
+        if (!node) return;
+        const resourceSettings = node.resource_settings || {};
+        resourceSettings[receiverId] = { locked, local_label };
+        this.updateNode(nodeId, { resource_settings: resourceSettings });
+    }
+
+    /**
+     * Get all resource_settings for a node
+     */
+    getLockedReceivers(nodeId) {
+        const node = this.getNode(nodeId);
+        if (!node || !node.resource_settings) return {};
+        return node.resource_settings;
+    }
+
+    /**
+     * Get local_label for a sender
+     */
+    getSenderLocalLabel(nodeId, senderId) {
+        const node = this.getNode(nodeId);
+        if (!node || !node.resource_settings) return '';
+        return (node.resource_settings[senderId] || {}).local_label || '';
+    }
+
+    /**
+     * Set local_label for a sender
+     */
+    setSenderLocalLabel(nodeId, senderId, local_label = '') {
+        const node = this.getNode(nodeId);
+        if (!node) return;
+        const resourceSettings = node.resource_settings || {};
+        resourceSettings[senderId] = { ...(resourceSettings[senderId] || {}), local_label };
+        this.updateNode(nodeId, { resource_settings: resourceSettings });
     }
 
     // ===== RDS URLS =====

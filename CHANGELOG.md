@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+### New Features
+- **Receiver Lock & Local Label** — Per-receiver lock toggle with memo, set from an accordion in Settings → NODE. Locked receivers stay visible in the receiver list but cannot be selected for patching. Senders and receivers also support a `local_label` (custom name shown instead of the NMOS label).
+  **Receiverロック & ローカルラベル** — Settings → NODEのアコーディオンから各Receiverをロック+メモ設定可能。ロック中はReceiverリストに表示されるが選択不可。Sender/Receiver共通で`local_label`（NMOSラベルの代わりに表示するカスタム名）にも対応。
+
+- **SDP Source registration** — Add a sender directly from a pasted/dropped SDP file (no IS-04 required). Shows a preview (source/destination IP, port, ST 2110-7 redundancy) before committing. Registered under a virtual "SDP Sources" node and usable in the normal TAKE flow.
+  **SDPソース登録** — SDPファイルの貼り付け/ドラッグ&ドロップでIS-04不要のSenderを登録。登録前に内容確認（送信元/宛先IP、ポート、ST 2110-7冗長判定）を表示。仮想ノード「SDP Sources」にまとまり、通常のTAKE操作で使用可能。
+
+### Bug Fixes
+- Resource detail modal (Sender/Receiver double-click JSON view) no longer shrinks to fit content — fixed height responsive to window size.
+  リソース詳細モーダル（Sender/Receiverダブルクリックで開くJSON表示）がコンテンツ量で縮んでしまう問題を修正。ウィンドウサイズに追従する高さに変更。
+
+- Add Node modal occasionally showed both IS-04 and SDP forms at once when reopened after switching tabs.
+  Add Nodeモーダルで、タブ切り替え後に再度開くとIS-04フォームとSDPフォームが同時に表示される場合がある問題を修正。
+
+- ST 2110-40 (ancillary/metadata) SDP was misclassified as "video" since it is carried over an `m=video` line; now detected via the `smpte291` rtpmap encoding.
+  ST 2110-40（メタデータ）のSDPが `m=video` 行のため "video" と誤判定される問題を修正。rtpmapの`smpte291`エンコーディングで判定するよう変更。
+
+---
+
 ## v2026.04.07
 
 ### New Features

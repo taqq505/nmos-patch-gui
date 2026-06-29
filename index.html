@@ -189,10 +189,15 @@
     <div id="addNodeModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Add NMOS Node</h2>
+                <h2>Add Node</h2>
                 <button class="modal-close">&times;</button>
             </div>
-            <form id="addNodeForm">
+            <div class="add-node-tabs">
+                <button class="add-node-tab active" data-tab="is04">IS-04 Node</button>
+                <button class="add-node-tab" data-tab="sdp">SDP Source</button>
+            </div>
+            <!-- IS-04 tab -->
+            <form id="addNodeForm" class="add-node-tab-content" data-tab="is04">
                 <div class="form-group">
                     <label for="nodeName">Node Name</label>
                     <input type="text" id="nodeName" name="nodeName" placeholder="Studio A Camera" required>
@@ -212,9 +217,67 @@
                     </button>
                 </div>
             </form>
+            <!-- SDP tab -->
+            <div id="addSdpForm" class="add-node-tab-content" data-tab="sdp" style="display:none;">
+                <div class="form-group">
+                    <label for="sdpSenderLabel">Sender Label</label>
+                    <input type="text" id="sdpSenderLabel" placeholder="Camera 1 — Video">
+                </div>
+                <div class="form-group">
+                    <label for="sdpInput">SDP</label>
+                    <div id="sdpDropZone" class="sdp-drop-zone">
+                        <textarea id="sdpInput" class="sdp-textarea" placeholder="Paste SDP here, or drag &amp; drop a .sdp file…" spellcheck="false"></textarea>
+                        <div class="sdp-drop-overlay">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            <span>Drop .sdp file here</span>
+                        </div>
+                    </div>
+                    <small id="sdpParseInfo"></small>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelAddSdp">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="previewSdpBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                        Preview
+                    </button>
+                </div>
+            </div>
             <div id="addNodeProgress" class="progress-container" style="display: none;">
                 <div class="spinner"></div>
                 <p>Discovering NMOS node...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: SDP Preview -->
+    <div id="sdpPreviewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>SDP Preview</h2>
+                <button class="modal-close" id="closeSdpPreview">&times;</button>
+            </div>
+            <div class="sdp-preview-body">
+                <div id="sdpPreviewContent"></div>
+            </div>
+            <div class="form-actions" style="padding: 0 24px 20px;">
+                <button type="button" class="btn btn-secondary" id="backToSdpForm">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                    Back
+                </button>
+                <button type="button" class="btn btn-primary" id="confirmAddSdpBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Add SDP Source
+                </button>
             </div>
         </div>
     </div>

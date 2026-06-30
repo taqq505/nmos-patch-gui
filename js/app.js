@@ -102,6 +102,11 @@ class BCCApplication {
             this.openSettingsModal('about');
         });
 
+        // Advanced Mode toggle
+        document.getElementById('advancedModeBtn').addEventListener('click', () => {
+            this.toggleAdvancedMode();
+        });
+
         // Resource detail modal copy buttons
         document.getElementById('copySdpBtn').addEventListener('click', () => {
             const sdpContent = document.getElementById('sdpContent').textContent;
@@ -3170,6 +3175,51 @@ class BCCApplication {
         return json
             .replace(/: true/g, ': <span class="json-true">true</span>')
             .replace(/: false/g, ': <span class="json-false">false</span>');
+    }
+
+    // ===== ADVANCED MODE =====
+
+    async toggleAdvancedMode() {
+        const nodeSelectors = document.querySelector('.node-selectors');
+        const controlPanel  = document.querySelector('.control-panel');
+        const advancedEl    = document.getElementById('advancedMode');
+        const btn           = document.getElementById('advancedModeBtn');
+
+        const entering = advancedEl.style.display === 'none' || advancedEl.style.display === '';
+
+        if (entering) {
+            nodeSelectors.style.display = 'none';
+            controlPanel.style.display  = 'none';
+            advancedEl.style.display    = 'flex';
+            btn.classList.add('mode-active');
+            document.body.classList.add('mtx-active');
+
+            // Lazy-load the matrix module on first use
+            if (!this.matrixView) {
+                const { MatrixView } = await import('./advanced/matrix.js');
+                this.matrixView = new MatrixView(
+                    document.getElementById('mtxContainer'),
+                    this.storage
+                );
+
+                // Wire up tab buttons
+                document.querySelectorAll('.mtx-tab').forEach(tab => {
+                    tab.addEventListener('click', (e) => {
+                        document.querySelectorAll('.mtx-tab').forEach(t => t.classList.remove('active'));
+                        e.currentTarget.classList.add('active');
+                        this.matrixView.setTab(e.currentTarget.dataset.tab);
+                    });
+                });
+            }
+
+            this.matrixView.open();
+        } else {
+            nodeSelectors.style.display = '';
+            controlPanel.style.display  = '';
+            advancedEl.style.display    = 'none';
+            btn.classList.remove('mode-active');
+            document.body.classList.remove('mtx-active');
+        }
     }
 
     /**

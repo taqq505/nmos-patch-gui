@@ -3259,3 +3259,1034 @@ body {
     background: var(--accent-primary);
 }
 
+
+
+/* =============================================================================
+   ADVANCED MODE — MTX Crosspoint Matrix
+   ============================================================================= */
+
+/* ── Mode toggle button ──────────────────────────────────────────────────── */
+
+.mode-switcher {
+    display: flex;
+    align-items: center;
+    margin-left: auto;          /* push to far-right of header-actions */
+    padding-left: 16px;
+    border-left: 1px solid var(--border-color);
+}
+
+.mode-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.mode-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: rgba(0, 212, 255, 0.4);
+}
+
+.mode-btn.mode-active {
+    background: rgba(0, 212, 255, 0.1);
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.15);
+}
+
+/* ── Advanced container ──────────────────────────────────────────────────── */
+
+#advancedMode {
+    background: var(--bg-primary);
+}
+
+/* ── Tab bar ─────────────────────────────────────────────────────────────── */
+
+.mtx-tab-bar {
+    display: flex;
+    gap: 6px;
+    padding: 0 0 14px 0;
+}
+
+.mtx-tab {
+    padding: 7px 26px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    transition: var(--transition);
+    text-transform: uppercase;
+}
+
+.mtx-tab:hover {
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+    border-color: rgba(0, 212, 255, 0.3);
+}
+
+.mtx-tab.active {
+    background: rgba(0, 212, 255, 0.08);
+    color: var(--accent-primary);
+    border-color: rgba(0, 212, 255, 0.5);
+    box-shadow: 0 0 12px rgba(0, 212, 255, 0.1);
+}
+
+/* ── Status bar ──────────────────────────────────────────────────────────── */
+
+.mtx-status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 14px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.3px;
+}
+
+.mtx-status-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11.5px;
+    color: var(--text-muted);
+    letter-spacing: 0.2px;
+}
+
+.mtx-stat-num {
+    color: var(--accent-primary);
+    font-weight: 700;
+}
+
+.mtx-status-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.mtx-refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    padding: 5px 12px;
+    letter-spacing: 0.3px;
+}
+
+/* ── Zoom control ── */
+.mtx-zoom-ctrl {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 7px;
+    padding: 2px 4px;
+}
+
+.mtx-zoom-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.12s, background 0.12s;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.mtx-zoom-btn:hover {
+    color: var(--accent-primary);
+    background: rgba(0, 212, 255, 0.1);
+}
+
+.mtx-zoom-val {
+    font-size: 11px;
+    font-family: 'Courier New', monospace;
+    color: var(--text-muted);
+    min-width: 38px;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.12s;
+}
+
+.mtx-zoom-val:hover {
+    color: var(--accent-primary);
+}
+
+/* ── Mode segmented control ── */
+.mtx-mode-seg {
+    display: flex;
+    background: var(--bg-tertiary);
+    border-radius: 7px;
+    border: 1px solid var(--border-color);
+    padding: 2px;
+    gap: 1px;
+}
+
+.mtx-mode-seg-btn {
+    padding: 4px 12px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.9px;
+    border-radius: 5px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+    white-space: nowrap;
+}
+
+.mtx-mode-seg-btn:hover:not(.active) {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-secondary);
+}
+
+.mtx-mode-seg-btn.active {
+    background: rgba(0, 212, 255, 0.1);
+    color: var(--accent-primary);
+    border-color: rgba(0, 212, 255, 0.3);
+    box-shadow: 0 0 8px rgba(0, 212, 255, 0.12);
+}
+
+/* ── Three-column layout ─────────────────────────────────────────────────── */
+
+.mtx-layout {
+    display: flex;
+    gap: 10px;
+    height: calc(100vh - 268px);
+    min-height: 400px;
+}
+
+/* ── Advanced mode: lock page to viewport, scroll only within matrix ── */
+body.mtx-active {
+    overflow: hidden;
+    height: 100dvh;
+}
+
+body.mtx-active .app-container {
+    height: 100dvh;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-bottom: 8px;
+}
+
+body.mtx-active #advancedMode {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+body.mtx-active #mtxContainer {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+body.mtx-active .mtx-layout {
+    flex: 1;
+    min-height: 0;
+    height: auto;
+}
+
+/* confirm bar is now a fixed overlay — no flex layout participation needed */
+
+/* When confirm bar is open, add bottom padding so lowest cells stay visible */
+body.mtx-active:has(.mtx-confirm-bar.active) .mtx-center {
+    padding-bottom: 58px;
+    scroll-padding-bottom: 58px;
+}
+
+/* Push toast above the fixed confirm bar so they don't overlap */
+body.mtx-active:has(.mtx-confirm-bar.active) .toast {
+    bottom: 72px;
+}
+
+/* ── Side panels ─────────────────────────────────────────────────────────── */
+
+/* ── Side panel shell ── */
+
+.mtx-side-panel {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: row;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: width 0.22s ease;
+    width: 224px;  /* 200px body + 24px strip */
+}
+
+.mtx-side-panel.panel-collapsed {
+    width: 28px;
+}
+
+/* ── Narrow strip (always visible) ── */
+
+.mtx-panel-strip {
+    width: 28px;
+    min-width: 28px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0 8px;
+    background: var(--bg-tertiary);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.mtx-left-panel .mtx-panel-strip {
+    border-right: 1px solid var(--border-color);
+    order: -1;
+}
+
+.mtx-right-panel .mtx-panel-strip {
+    border-left: 1px solid var(--border-color);
+    order: 1;
+}
+
+.mtx-panel-strip:hover {
+    background: var(--bg-hover);
+}
+
+.mtx-panel-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.mtx-panel-strip:hover .mtx-panel-toggle-btn {
+    color: var(--accent-primary);
+    background: rgba(0, 212, 255, 0.12);
+    border-color: rgba(0, 212, 255, 0.35);
+    box-shadow: 0 0 6px rgba(0, 212, 255, 0.25);
+}
+
+.mtx-panel-strip-label {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    user-select: none;
+    transition: color 0.15s;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mtx-panel-strip:hover .mtx-panel-strip-label {
+    color: var(--accent-primary);
+}
+
+/* When collapsed: label becomes accent-colored tab */
+
+.panel-collapsed .mtx-panel-strip {
+    width: 28px;
+    background: rgba(0, 212, 255, 0.06);
+    border-color: rgba(0, 212, 255, 0.2);
+}
+
+.panel-collapsed .mtx-panel-strip-label {
+    color: var(--accent-primary);
+    opacity: 0.8;
+}
+
+/* ── Panel body (tree content, hides when collapsed) ── */
+
+.mtx-panel-body {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: width 0.22s ease, opacity 0.18s ease;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-primary) transparent;
+}
+
+.mtx-panel-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.mtx-panel-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.mtx-panel-body::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--accent-primary), var(--accent-secondary));
+    border-radius: 2px;
+}
+
+.mtx-panel-body::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #00e5ff, #8b4aff);
+}
+
+.panel-collapsed .mtx-panel-body {
+    width: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    flex: 0;
+}
+
+.mtx-panel-title {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    padding: 12px 14px 10px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 6px;
+    flex-shrink: 0;
+}
+
+.mtx-panel-empty {
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 16px 14px;
+    text-align: center;
+    line-height: 1.6;
+}
+
+.mtx-tree-group {
+    padding: 0 6px 4px;
+}
+
+/* ── Node header row ── */
+
+.mtx-tree-node-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 4px 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    margin-bottom: 2px;
+    cursor: default;
+}
+
+.mtx-tree-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.12s, color 0.12s;
+    padding: 0;
+}
+
+.mtx-tree-arrow:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.mtx-tree-arrow svg {
+    transition: transform 0.18s ease;
+}
+
+.mtx-tree-arrow.collapsed svg {
+    transform: rotate(-90deg);
+}
+
+.mtx-node-cb {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    accent-color: var(--accent-primary);
+    cursor: pointer;
+}
+
+.mtx-tree-node-label {
+    flex: 1;
+    min-width: 0;
+    font-size: 11px;
+    font-weight: 700;
+    color: #7cb9ff;
+    text-transform: none;
+    letter-spacing: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+.mtx-tree-node-count {
+    font-size: 10px;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1px 5px;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Items container (collapsible) ── */
+
+.mtx-tree-items {
+    padding-bottom: 2px;
+}
+
+.mtx-tree-items.collapsed {
+    display: none;
+}
+
+/* ── Individual item row ── */
+
+.mtx-tree-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 4px 3px 22px;  /* 22px indent aligns with node label */
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    transition: background 0.12s;
+    line-height: 1.4;
+}
+
+.mtx-tree-item:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.mtx-item-cb {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    accent-color: var(--accent-primary);
+    cursor: pointer;
+}
+
+.mtx-tree-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mtx-tree-item--locked {
+    opacity: 0.5;
+}
+
+.mtx-tree-item--locked .mtx-tree-label {
+    color: #f87171;
+}
+
+.mtx-lock-svg {
+    flex-shrink: 0;
+    width: 12px;
+    height: 12px;
+    min-width: 12px;
+    color: #b91c1c;
+}
+
+/* ── Center (scrollable matrix) ──────────────────────────────────────────── */
+
+.mtx-center {
+    flex: 1;
+    min-width: 0;
+    background: #080c1a;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: auto;
+    position: relative;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-primary) transparent;
+}
+
+.mtx-center::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.mtx-center::-webkit-scrollbar-corner {
+    background: #080c1a;
+}
+
+.mtx-center::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.mtx-center::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border-radius: 3px;
+}
+
+.mtx-center::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #00e5ff, #8b4aff);
+}
+
+.mtx-grid-wrapper {
+    padding: 0;
+    min-width: max-content;
+}
+
+.mtx-empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: var(--text-muted);
+    font-size: 13px;
+    text-align: center;
+    padding: 24px;
+    line-height: 1.8;
+}
+
+/* ── Matrix table ────────────────────────────────────────────────────────── */
+
+.mtx-table {
+    border-collapse: collapse;
+    table-layout: fixed;
+    border-spacing: 0;
+}
+
+/* Corner cell */
+.mtx-corner {
+    width: 160px;
+    min-width: 160px;
+    position: sticky;
+    top: 0;
+    left: 0;
+    z-index: 5;
+    background: #080c1a;
+    border-right: 2px solid #1e2d4a;
+    border-bottom: 2px solid #1e2d4a;
+}
+
+/* Receiver column headers (rotated) — horizontal axis */
+.mtx-col-header {
+    width: 28px;
+    min-width: 28px;
+    height: 130px;
+    padding: 0;
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: #0a0f22;
+    border-right: 1px solid #141e34;
+    border-bottom: 2px solid #1e2d4a;
+    vertical-align: bottom;
+    transition: background 0.12s;
+    overflow: visible;
+}
+
+.mtx-col-header.mtx-col-highlight {
+    background: #0d1e3a;
+}
+
+.mtx-col-header.mtx-col-highlight .mtx-col-label {
+    color: var(--accent-primary);
+}
+
+.mtx-col-header--locked {
+    background: #150808;
+    border-right-color: #3a1010;
+}
+
+.mtx-col-header--locked .mtx-col-label {
+    color: #8b3030;
+}
+
+.mtx-col-lock-badge {
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #c94040;
+    line-height: 0;
+    pointer-events: none;
+}
+
+.mtx-col-label {
+    display: block;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    white-space: nowrap;
+    overflow: hidden;
+    max-height: 126px;
+    font-size: 11px;
+    color: #64748b;
+    padding: 6px 8px;
+    text-overflow: ellipsis;
+    transition: color 0.12s;
+}
+
+/* Sender row headers — vertical axis */
+.mtx-row-header {
+    width: 160px;
+    min-width: 160px;
+    max-width: 160px;
+    text-align: left;
+    font-weight: 400;
+    font-size: 11.5px;
+    color: #94a3b8;
+    padding: 0 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-right: 2px solid #1e2d4a;
+    border-bottom: 1px solid #111827;
+    height: 28px;
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: #0a0f22;
+    transition: background 0.12s, color 0.12s;
+}
+
+.mtx-row-header.mtx-row-highlight {
+    background: #0d1e3a;
+    color: var(--accent-primary);
+}
+
+.mtx-row-header--locked {
+    color: #6b2020;
+}
+
+/* Crosspoint cells */
+.mtx-cell {
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    padding: 0;
+    cursor: pointer;
+    background: #0d1121;
+    border-right: 1px solid #141e34;
+    border-bottom: 1px solid #141e34;
+    transition: background 0.1s;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.mtx-cell:hover:not(.mtx-cell--locked):not(.mtx-cell--active):not(.mtx-cell--pending) {
+    background: #162038;
+}
+
+/* Active: currently connected */
+.mtx-cell--active {
+    background: #082a46;
+    cursor: pointer;
+}
+
+.mtx-cell--active::after {
+    content: '';
+    display: block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent-primary);
+    box-shadow: 0 0 8px var(--accent-primary), 0 0 16px rgba(0, 212, 255, 0.4);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Locked receiver column cells */
+.mtx-cell--locked {
+    cursor: not-allowed;
+    background: repeating-linear-gradient(
+        135deg,
+        #0d0606,
+        #0d0606 3px,
+        #110808 3px,
+        #110808 6px
+    );
+}
+
+.mtx-cell--locked.mtx-cell--active {
+    background: repeating-linear-gradient(
+        135deg,
+        #0a1520,
+        #0a1520 3px,
+        #0d1a28 3px,
+        #0d1a28 6px
+    );
+    opacity: 1;
+}
+
+/* Selected, awaiting confirm (TAKE mode) */
+.mtx-cell--pending {
+    background: #1c1008;
+    outline: 1px solid #fbbf24;
+    outline-offset: -1px;
+    z-index: 1;
+}
+
+.mtx-cell--pending::after {
+    content: '';
+    display: block;
+    width: 8px;
+    height: 8px;
+    background: #fbbf24;
+    border-radius: 2px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0.8;
+}
+
+/* Bulk mode selection */
+.mtx-cell--bulk-sel {
+    background: #1a1000;
+    outline: 1px solid #f97316;
+    outline-offset: -1px;
+    z-index: 1;
+}
+
+.mtx-cell--bulk-sel::after {
+    content: '';
+    display: block;
+    width: 8px;
+    height: 8px;
+    background: #f97316;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 6px rgba(249, 115, 22, 0.6);
+}
+
+/* Patching in progress */
+.mtx-cell--patching {
+    animation: mtx-pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes mtx-pulse {
+    from { background: #0d1121; }
+    to   { background: #0e4a6a; }
+}
+
+/* Patch error flash */
+.mtx-cell--error {
+    background: #3b0d0d !important;
+}
+
+.mtx-cell--error::after {
+    content: '';
+    display: block;
+    width: 8px;
+    height: 8px;
+    background: #ef4444;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Crosshair hover highlight on cells (non-active) */
+.mtx-cell.mtx-cross-hover:not(.mtx-cell--locked):not(.mtx-cell--active):not(.mtx-cell--pending) {
+    background: #1a2a42;
+}
+
+/* ── Confirm bar ─────────────────────────────────────────────────────────── */
+
+.mtx-confirm-bar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 20px;
+    background: rgba(10, 16, 30, 0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-top: 2px solid var(--accent-primary);
+    box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.5), 0 -2px 8px rgba(0, 212, 255, 0.1);
+    /* Fixed overlay — never affects matrix layout */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 200;
+}
+
+.mtx-confirm-bar.active {
+    display: flex;
+}
+
+.mtx-confirm-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.mtx-confirm-label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: #080c1a;
+    background: var(--accent-primary);
+    border-radius: 4px;
+    padding: 3px 8px;
+    flex-shrink: 0;
+}
+
+.mtx-confirm-sender {
+    font-weight: 600;
+    color: #7dd3fc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
+}
+
+.mtx-confirm-receiver {
+    font-weight: 600;
+    color: #86efac;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
+}
+
+.mtx-confirm-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.mtx-btn-cancel,
+.mtx-btn-take {
+    font-size: 12px;
+    padding: 6px 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mtx-kbd {
+    font-size: 10px;
+    font-family: 'Courier New', monospace;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    padding: 1px 5px;
+    color: inherit;
+    opacity: 0.75;
+    line-height: 1.4;
+}
+
+/* BULK mode confirm bar */
+.mtx-confirm-bar.active:has(.mtx-bulk-label) {
+    border-top-color: #f97316;
+    box-shadow: 0 -4px 20px rgba(249, 115, 22, 0.1);
+}
+
+.mtx-bulk-label {
+    background: #f97316 !important;
+}
+
+.mtx-bulk-count {
+    font-size: 12px;
+    font-weight: 700;
+    color: #f97316;
+    flex-shrink: 0;
+}
+
+.mtx-bulk-info {
+    gap: 8px;
+    overflow: hidden;
+}
+
+.mtx-bulk-list {
+    display: flex;
+    gap: 6px;
+    overflow: hidden;
+    flex-wrap: nowrap;
+    mask-image: linear-gradient(to right, black 80%, transparent 100%);
+}
+
+.mtx-bulk-item {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 4px;
+    padding: 1px 7px;
+}
+
+/* ── Corner label ────────────────────────────────────────────────────────── */
+
+.mtx-corner-label {
+    display: block;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    text-align: right;
+    padding: 0 8px 6px 0;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    opacity: 0.4;
+}

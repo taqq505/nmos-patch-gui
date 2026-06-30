@@ -3,6 +3,17 @@
 ## Unreleased
 
 ### New Features
+- **Advanced Mode — Matrix View** — Full crosspoint matrix for video/audio/data routing. Rows = Senders, columns = Receivers (rotated headers). Supports three patch modes switchable via a segmented control:
+  - **TAKE** — Select a crosspoint and confirm via a bottom bar before patching.
+  - **1-CLICK** — Tap a crosspoint to patch immediately (no confirmation step).
+  - **BULK** — Select multiple crosspoints across receivers, then TAKE ALL in one shot. Each receiver can only have one pending sender.
+  Locked receivers (from node settings) are shown with a lock badge and dark-red header, and cannot be clicked. Local labels are shown with priority over IS-04 labels. The matrix auto-updates when nodes are added or changed. Zoom in/out (40%–200%) is available within the matrix box. Side panels can be collapsed. Custom scrollbars match the main page style. Vertical scrolling is contained within the matrix box at all viewport sizes.
+  **アドバンスモード — マトリクスビュー** — 映像/音声/データのクロスポイントマトリクス。行 = Sender、列 = Receiver（縦書きヘッダー）。セグメントコントロールで3モードを切替可能：
+  - **TAKE** — クロスポイントを選択し、下部バーで確認してPATCH。
+  - **1-CLICK** — タップ直後に即時PATCH（確認ステップなし）。
+  - **BULK** — 複数クロスポイントを選択してまとめてTAKE。1つのReceiverに選択できるSenderは1つまで。
+  ノード設定でロックされたReceiverはロックバッジ付き（暗赤色）で表示され、選択不可。ローカルラベルをIS-04ラベルより優先表示。ノード追加・変更時にマトリクスを自動更新。マトリクスボックス内の拡大縮小（40%〜200%）に対応。サイドパネルは折りたたみ可能。カスタムスクロールバーはメインページと統一。縦スクロールはマトリクスボックス内のみに限定。
+
 - **Receiver Lock & Local Label** — Per-receiver lock toggle with memo, set from an accordion in Settings → NODE. Locked receivers stay visible in the receiver list but cannot be selected for patching. Senders and receivers also support a `local_label` (custom name shown instead of the NMOS label).
   **Receiverロック & ローカルラベル** — Settings → NODEのアコーディオンから各Receiverをロック+メモ設定可能。ロック中はReceiverリストに表示されるが選択不可。Sender/Receiver共通で`local_label`（NMOSラベルの代わりに表示するカスタム名）にも対応。
 

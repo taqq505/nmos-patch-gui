@@ -68,6 +68,15 @@
                         </svg>
                         About
                     </button>
+                    <div class="mode-switcher">
+                        <button id="advancedModeBtn" class="mode-btn" title="Switch to MTX crosspoint matrix view">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                                <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                            </svg>
+                            MTX
+                        </button>
+                    </div>
                 </div>
             </div>
         </header>
@@ -183,6 +192,17 @@
                 </div>
             </div>
         </div>
+
+        <!-- Advanced Mode: MTX Crosspoint Matrix -->
+        <div id="advancedMode" style="display:none; flex-direction:column;">
+            <div class="mtx-tab-bar">
+                <button class="mtx-tab active" data-tab="video">VIDEO</button>
+                <button class="mtx-tab" data-tab="audio">AUDIO</button>
+                <button class="mtx-tab" data-tab="data">DATA</button>
+            </div>
+            <div id="mtxContainer"></div>
+        </div>
+
     </div>
 
     <!-- Modal: Add Node -->

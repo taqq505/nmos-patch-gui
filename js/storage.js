@@ -7,7 +7,8 @@ const STORAGE_KEYS = {
     NODES: 'nmos_bcc_nodes',
     HISTORY: 'nmos_bcc_history',
     RDS_URLS: 'nmos_bcc_rds_urls',
-    SETTINGS: 'nmos_bcc_settings'
+    SETTINGS: 'nmos_bcc_settings',
+    MATRIX: 'nmos_bcc_matrix'
 };
 
 export class StorageManager {
@@ -37,6 +38,7 @@ export class StorageManager {
     saveNodes() {
         try {
             localStorage.setItem(STORAGE_KEYS.NODES, JSON.stringify(this.nodes));
+            document.dispatchEvent(new CustomEvent('nmos:nodes-updated'));
         } catch (error) {
             console.error('Failed to save nodes to storage:', error);
         }
@@ -472,6 +474,43 @@ export class StorageManager {
         this.saveSettings(settings);
     }
 
+    // ===== MATRIX SETTINGS =====
+
+    getMatrixSettings() {
+        try {
+            const data = localStorage.getItem(STORAGE_KEYS.MATRIX);
+            return data ? JSON.parse(data) : { hidden_senders: [], hidden_receivers: [] };
+        } catch {
+            return { hidden_senders: [], hidden_receivers: [] };
+        }
+    }
+
+    saveMatrixSettings(settings) {
+        localStorage.setItem(STORAGE_KEYS.MATRIX, JSON.stringify(settings));
+    }
+
+    setMatrixSenderVisible(key, visible) {
+        const s = this.getMatrixSettings();
+        if (!s.hidden_senders) s.hidden_senders = [];
+        if (visible) {
+            s.hidden_senders = s.hidden_senders.filter(k => k !== key);
+        } else if (!s.hidden_senders.includes(key)) {
+            s.hidden_senders.push(key);
+        }
+        this.saveMatrixSettings(s);
+    }
+
+    setMatrixReceiverVisible(key, visible) {
+        const s = this.getMatrixSettings();
+        if (!s.hidden_receivers) s.hidden_receivers = [];
+        if (visible) {
+            s.hidden_receivers = s.hidden_receivers.filter(k => k !== key);
+        } else if (!s.hidden_receivers.includes(key)) {
+            s.hidden_receivers.push(key);
+        }
+        this.saveMatrixSettings(s);
+    }
+
     // ===== UTILITIES =====
 
     /**
@@ -490,6 +529,7 @@ export class StorageManager {
             history: this.history,
             rds_urls: this.getAllRdsUrls(),
             settings: this.getSettings(),
+            matrix_settings: this.getMatrixSettings(),
             exported_at: new Date().toISOString()
         };
     }
@@ -511,6 +551,9 @@ export class StorageManager {
         }
         if (data.settings) {
             this.saveSettings(data.settings);
+        }
+        if (data.matrix_settings) {
+            this.saveMatrixSettings(data.matrix_settings);
         }
     }
 

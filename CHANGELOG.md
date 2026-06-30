@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v2026.06.30
 
 ### New Features
 - **Advanced Mode — Matrix View** — Full crosspoint matrix for video/audio/data routing. Rows = Senders, columns = Receivers (rotated headers). Supports three patch modes switchable via a segmented control:

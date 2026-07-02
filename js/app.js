@@ -1760,7 +1760,203 @@ class BCCApplication {
             this.loadNodesTab();
         } else if (tabName === 'rds') {
             this.loadRdsTab();
+        } else if (tabName === 'combo') {
+            this.loadComboTab();
         }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // COMBO TAB
+    // ──────────────────────────────────────────────────────────────────────────
+
+    loadComboTab() {
+        const root = document.getElementById('comboTabContent');
+        if (!root) return;
+        root.innerHTML = '';
+
+        const FMT_COLOR = { video: 'combo-badge-v', audio: 'combo-badge-a', anc: 'combo-badge-n' };
+        const FMT_LABEL = { video: 'V', audio: 'A', anc: 'N' };
+
+        const badgesHtml = (members) =>
+            ['video', 'audio', 'anc'].map(fmt => {
+                const n = (members?.[fmt] || []).length;
+                if (!n) return '';
+                return `<span class="combo-badge ${FMT_COLOR[fmt]}">${FMT_LABEL[fmt]}${n > 1 ? '×' + n : ''}</span>`;
+            }).join('');
+
+        const renderSection = (title, combos, isSender) => {
+            const sec = document.createElement('div');
+            sec.className = 'combo-section';
+            sec.innerHTML = `
+                <div class="combo-section-header">
+                    <h3 class="combo-section-title">${title}</h3>
+                    <button class="btn btn-small btn-secondary combo-add-btn" data-type="${isSender ? 'sender' : 'receiver'}">
+                        + Add ${isSender ? 'Sender' : 'Receiver'} Combo
+                    </button>
+                </div>
+                <div class="combo-list" id="combo-list-${isSender ? 'sender' : 'receiver'}">
+                    ${combos.length === 0
+                        ? `<div class="combo-empty">No ${isSender ? 'sender' : 'receiver'} combos defined.</div>`
+                        : combos.map(c => `
+                        <div class="combo-item" data-id="${c.id}" data-type="${isSender ? 'sender' : 'receiver'}">
+                            <div class="combo-item-info">
+                                <span class="combo-item-name">${this.escapeHtml(c.label)}</span>
+                                <span class="combo-item-badges">${badgesHtml(c.members)}</span>
+                            </div>
+                            <div class="combo-item-actions">
+                                <button class="btn btn-small btn-secondary combo-edit-btn" data-id="${c.id}" data-type="${isSender ? 'sender' : 'receiver'}">Edit</button>
+                                <button class="btn btn-small btn-danger combo-delete-btn" data-id="${c.id}" data-type="${isSender ? 'sender' : 'receiver'}">Delete</button>
+                            </div>
+                        </div>`).join('')}
+                </div>`;
+            return sec;
+        };
+
+        root.appendChild(renderSection('Sender Combos', this.storage.getAllComboSenders(), true));
+        root.appendChild(renderSection('Receiver Combos', this.storage.getAllComboReceivers(), false));
+
+        // Inline edit form placeholder
+        const formArea = document.createElement('div');
+        formArea.id = 'comboEditArea';
+        root.appendChild(formArea);
+
+        // Wire buttons
+        root.querySelectorAll('.combo-add-btn').forEach(btn => {
+            btn.addEventListener('click', () => this._openComboForm(btn.dataset.type, null));
+        });
+        root.querySelectorAll('.combo-edit-btn').forEach(btn => {
+            btn.addEventListener('click', () => this._openComboForm(btn.dataset.type, btn.dataset.id));
+        });
+        root.querySelectorAll('.combo-delete-btn').forEach(btn => {
+            btn.addEventListener('click', () => this._deleteCombo(btn.dataset.type, btn.dataset.id));
+        });
+    }
+
+    _deleteCombo(type, id) {
+        const combos = type === 'sender' ? this.storage.getAllComboSenders() : this.storage.getAllComboReceivers();
+        const combo = combos.find(c => c.id === id);
+        if (!combo || !confirm(`Delete combo "${combo.label}"?`)) return;
+        if (type === 'sender') this.storage.removeComboSender(id);
+        else                   this.storage.removeComboReceiver(id);
+        this.loadComboTab();
+    }
+
+    _openComboForm(type, editId) {
+        const area = document.getElementById('comboEditArea');
+        if (!area) return;
+
+        const isSender = type === 'sender';
+        const combos = isSender ? this.storage.getAllComboSenders() : this.storage.getAllComboReceivers();
+        const existing = editId ? combos.find(c => c.id === editId) : null;
+        const members = existing?.members || { video: [], audio: [], anc: [] };
+
+        // All IS-04 nodes (excluding virtual nodes)
+        const realNodes = this.storage.getAllNodes().filter(n => n.type !== 'sdp' && n.type !== 'combo');
+
+        const FMT_COLOR = { video: 'combo-badge-v', audio: 'combo-badge-a', anc: 'combo-badge-n' };
+        const FMT_LABEL = { video: 'VIDEO', audio: 'AUDIO', anc: 'ANC' };
+
+        const form = document.createElement('div');
+        form.className = 'combo-form';
+        form.innerHTML = `
+            <div class="combo-form-header">
+                <h3 class="combo-section-title">${editId ? 'Edit' : 'Add'} ${isSender ? 'Sender' : 'Receiver'} Combo</h3>
+            </div>
+            <div class="combo-form-body">
+                <div class="combo-form-row">
+                    <label class="combo-form-label">Name</label>
+                    <input type="text" id="comboFormName" class="combo-form-input" value="${this.escapeHtml(existing?.label || '')}" placeholder="Combo name">
+                </div>
+                <div id="comboMemberList"></div>
+                <div class="combo-form-add-btns">
+                    <button class="btn btn-small btn-secondary combo-add-member" data-fmt="video">+ VIDEO</button>
+                    <button class="btn btn-small btn-secondary combo-add-member" data-fmt="audio">+ AUDIO</button>
+                    <button class="btn btn-small btn-secondary combo-add-member" data-fmt="anc">+ ANC</button>
+                </div>
+                <div class="combo-form-actions">
+                    <button class="btn btn-secondary" id="comboFormCancel">Cancel</button>
+                    <button class="btn btn-primary" id="comboFormSave">Save</button>
+                </div>
+            </div>`;
+
+        area.innerHTML = '';
+        area.appendChild(form);
+        area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        const memberList = form.querySelector('#comboMemberList');
+
+        const addMemberRow = (fmt, nodeId, resourceId) => {
+            const row = document.createElement('div');
+            row.className = 'combo-member-row';
+            row.dataset.fmt = fmt;
+
+            const nodeOpts = realNodes.map(n => `<option value="${n.id}" ${n.id === nodeId ? 'selected' : ''}>${this.escapeHtml(n.name)}</option>`).join('');
+
+            const selectedNode = realNodes.find(n => n.id === nodeId) || realNodes[0];
+            const resources = isSender ? (selectedNode?.senders || []) : (selectedNode?.receivers || []);
+            const resOpts = resources.map(r => `<option value="${r.id}" ${r.id === resourceId ? 'selected' : ''}>${this.escapeHtml(r.label || r.id)}</option>`).join('');
+
+            row.innerHTML = `
+                <span class="combo-badge ${FMT_COLOR[fmt]} combo-member-fmt">${FMT_LABEL[fmt]}</span>
+                <select class="combo-member-node">${nodeOpts}</select>
+                <select class="combo-member-res">${resOpts}</select>
+                <button class="combo-member-rm" title="Remove">×</button>`;
+
+            // Repopulate resource dropdown when node changes
+            row.querySelector('.combo-member-node').addEventListener('change', e => {
+                const node = realNodes.find(n => n.id === e.target.value);
+                const res = isSender ? (node?.senders || []) : (node?.receivers || []);
+                row.querySelector('.combo-member-res').innerHTML =
+                    res.map(r => `<option value="${r.id}">${this.escapeHtml(r.label || r.id)}</option>`).join('');
+            });
+
+            row.querySelector('.combo-member-rm').addEventListener('click', () => row.remove());
+            memberList.appendChild(row);
+        };
+
+        // Populate existing members
+        for (const fmt of ['video', 'audio', 'anc']) {
+            for (const ref of (members[fmt] || [])) {
+                const id = isSender ? ref.sender_id : ref.receiver_id;
+                addMemberRow(fmt, ref.node_id, id);
+            }
+        }
+
+        // Add member buttons
+        form.querySelectorAll('.combo-add-member').forEach(btn => {
+            btn.addEventListener('click', () => addMemberRow(btn.dataset.fmt, realNodes[0]?.id, null));
+        });
+
+        // Cancel
+        form.querySelector('#comboFormCancel').addEventListener('click', () => {
+            area.innerHTML = '';
+        });
+
+        // Save
+        form.querySelector('#comboFormSave').addEventListener('click', () => {
+            const label = form.querySelector('#comboFormName').value.trim();
+            if (!label) { alert('Please enter a name.'); return; }
+
+            const newMembers = { video: [], audio: [], anc: [] };
+            form.querySelectorAll('.combo-member-row').forEach(row => {
+                const fmt    = row.dataset.fmt;
+                const nodeId = row.querySelector('.combo-member-node').value;
+                const resId  = row.querySelector('.combo-member-res').value;
+                if (nodeId && resId) {
+                    const entry = isSender ? { node_id: nodeId, sender_id: resId } : { node_id: nodeId, receiver_id: resId };
+                    newMembers[fmt].push(entry);
+                }
+            });
+
+            if (editId) {
+                if (isSender) this.storage.updateComboSender(editId, label, newMembers);
+                else          this.storage.updateComboReceiver(editId, label, newMembers);
+            } else {
+                if (isSender) this.storage.addComboSender(label, newMembers);
+                else          this.storage.addComboReceiver(label, newMembers);
+            }
+            this.loadComboTab();
+        });
     }
 
     /**

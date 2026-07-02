@@ -4291,3 +4291,218 @@ body.mtx-active:has(.mtx-confirm-bar.active) .toast {
     right: 0;
     opacity: 0.4;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   COMBO — Stream badges, cell styles, TAKE bar, Settings tab
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── MTX COMBO tab ── */
+.mtx-tab--combo { margin-left: 8px; border-left: 1px solid var(--border-color); padding-left: 26px; }
+.mtx-tab--combo.active {
+    background: rgba(167, 139, 250, 0.1);
+    color: #a78bfa;
+    border-color: rgba(167, 139, 250, 0.45);
+    box-shadow: 0 0 12px rgba(167, 139, 250, 0.12);
+}
+.mtx-tab--combo:hover {
+    background: rgba(167, 139, 250, 0.06);
+    color: #c4b5fd;
+    border-color: rgba(167, 139, 250, 0.3);
+}
+
+/* ── Combo stream badges ── */
+.combo-badge {
+    display: inline-flex;
+    align-items: center;
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    border-radius: 3px;
+    padding: 1px 5px;
+    line-height: 1.5;
+}
+.combo-badge-v { background: rgba(0, 212, 255, 0.12); color: #00d4ff; border: 1px solid rgba(0, 212, 255, 0.3); }
+.combo-badge-a { background: rgba(167,139,250, 0.12); color: #a78bfa; border: 1px solid rgba(167,139,250, 0.3); }
+.combo-badge-n { background: rgba(251,146, 60, 0.12); color: #fb923c; border: 1px solid rgba(251,146, 60, 0.3); }
+
+/* ── Combo column header ── */
+.mtx-col-header--combo { background: rgba(167, 139, 250, 0.04); }
+.mtx-col-header--combo .mtx-col-label { color: #a78bfa; }
+.mtx-col-combo-badges {
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 2px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+/* ── Combo row header ── */
+.mtx-row-header--combo { background: rgba(167, 139, 250, 0.04); color: #a78bfa !important; }
+.mtx-row-combo-badges { display: flex; gap: 2px; flex-wrap: wrap; margin-top: 3px; }
+
+/* ── Combo cells ── */
+.mtx-cell--combo-pair  { background: rgba(167, 139, 250, 0.05); }
+.mtx-cell--combo-single { background: rgba(167, 139, 250, 0.03); }
+.mtx-cell--combo-active::after {
+    background: linear-gradient(135deg, #00d4ff, #a78bfa) !important;
+    box-shadow: 0 0 10px rgba(167,139,250,0.5), 0 0 6px rgba(0,212,255,0.3) !important;
+}
+
+/* ── COMBO TAKE bar ── */
+.mtx-confirm-label--combo {
+    background: #a78bfa;
+    color: #080c1a;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    border-radius: 4px;
+    padding: 3px 8px;
+    flex-shrink: 0;
+}
+.mtx-confirm-info--combo { color: var(--text-secondary); }
+.mtx-confirm-bar.active:has(.mtx-confirm-label--combo) {
+    border-top-color: #a78bfa;
+    box-shadow: 0 -6px 24px rgba(0,0,0,0.5), 0 -2px 8px rgba(167,139,250,0.15);
+}
+.mtx-btn-take--combo { background: #a78bfa !important; }
+.mtx-btn-take--combo:hover { background: #c4b5fd !important; }
+.mtx-combo-stream-count {
+    font-size: 10px;
+    font-family: 'Courier New', monospace;
+    background: rgba(167,139,250,0.15);
+    border: 1px solid rgba(167,139,250,0.3);
+    color: #a78bfa;
+    border-radius: 3px;
+    padding: 1px 6px;
+    flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   COMBO — Settings tab UI
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.combo-section { margin-bottom: 28px; }
+
+.combo-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.combo-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #a78bfa;
+    margin: 0;
+}
+
+.combo-list { display: flex; flex-direction: column; gap: 8px; }
+
+.combo-empty {
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: 16px;
+    background: var(--bg-tertiary);
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.combo-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+.combo-item-info { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.combo-item-name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.combo-item-badges { display: flex; gap: 3px; }
+.combo-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* ── Combo edit form ── */
+.combo-form {
+    background: var(--bg-secondary);
+    border: 1px solid rgba(167,139,250,0.3);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-top: 16px;
+}
+.combo-form-header { margin-bottom: 16px; }
+.combo-form-body { display: flex; flex-direction: column; gap: 14px; }
+.combo-form-row { display: flex; align-items: center; gap: 12px; }
+.combo-form-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    min-width: 60px;
+}
+.combo-form-input {
+    flex: 1;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    padding: 10px 14px;
+    transition: var(--transition);
+}
+.combo-form-input:focus {
+    outline: none;
+    border-color: rgba(167,139,250,0.6);
+    box-shadow: 0 0 0 3px rgba(167,139,250,0.1);
+}
+
+.combo-member-row {
+    display: grid;
+    grid-template-columns: 72px 1fr 1fr 30px;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.combo-member-fmt { text-align: center; flex-shrink: 0; }
+.combo-member-node,
+.combo-member-res {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    padding: 6px 8px;
+    min-width: 0;
+    transition: var(--transition);
+}
+.combo-member-node:focus,
+.combo-member-res:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+.combo-member-rm {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.12s, border-color 0.12s;
+}
+.combo-member-rm:hover { color: var(--error); border-color: var(--error); }
+
+.combo-form-add-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.combo-form-actions { display: flex; gap: 8px; justify-content: flex-end; padding-top: 8px; }

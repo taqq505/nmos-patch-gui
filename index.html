@@ -199,6 +199,7 @@
                 <button class="mtx-tab active" data-tab="video">VIDEO</button>
                 <button class="mtx-tab" data-tab="audio">AUDIO</button>
                 <button class="mtx-tab" data-tab="data">DATA</button>
+                <button class="mtx-tab mtx-tab--combo" data-tab="combo">COMBO</button>
             </div>
             <div id="mtxContainer"></div>
         </div>
@@ -378,6 +379,16 @@
             <div class="settings-modal-body">
                 <!-- Sidebar -->
                 <nav class="settings-sidebar">
+                    <button class="settings-tab" data-tab="combo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="7" width="6" height="10" rx="1"/>
+                            <rect x="9" y="4" width="6" height="10" rx="1"/>
+                            <rect x="16" y="7" width="6" height="10" rx="1"/>
+                            <line x1="8" y1="12" x2="9" y2="12"/>
+                            <line x1="15" y1="12" x2="16" y2="12"/>
+                        </svg>
+                        <span>Combo</span>
+                    </button>
                     <button class="settings-tab active" data-tab="history">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10"/>
@@ -460,6 +471,11 @@
                 </nav>
                 <!-- Panel -->
                 <div class="settings-panel">
+
+                <!-- Tab Content: Combo -->
+                <div id="comboTab" class="settings-tab-content">
+                    <div id="comboTabContent"></div>
+                </div>
 
                 <!-- Tab Content: History -->
                 <div id="historyTab" class="settings-tab-content active">

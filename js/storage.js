@@ -265,6 +265,83 @@ export class StorageManager {
         this.updateNode(nodeId, { resource_settings: resourceSettings });
     }
 
+    // ===== COMBOS =====
+
+    getComboNode() {
+        let node = this.nodes.find(n => n.type === 'combo');
+        if (!node) {
+            node = {
+                id: 'combos', name: 'Combos', type: 'combo',
+                is04_url: null, is05_url: null, version: null, is05_version: null,
+                senders: [], receivers: [], patch_paths: {},
+                added_at: new Date().toISOString(), last_updated: new Date().toISOString()
+            };
+            this.nodes.push(node);
+            this.saveNodes();
+        }
+        return node;
+    }
+
+    _saveComboNode(node) {
+        const idx = this.nodes.findIndex(n => n.id === node.id);
+        if (idx === -1) return;
+        this.nodes[idx] = { ...node, last_updated: new Date().toISOString() };
+        this.saveNodes();
+    }
+
+    addComboSender(label, members) {
+        const node = this.getComboNode();
+        const combo = { id: this.generateId(), label, type: 'combo', format: 'combo',
+            members: { video: members.video || [], audio: members.audio || [], anc: members.anc || [] } };
+        node.senders.push(combo);
+        this._saveComboNode(node);
+        return combo;
+    }
+
+    updateComboSender(comboId, label, members) {
+        const node = this.getComboNode();
+        const idx = node.senders.findIndex(s => s.id === comboId);
+        if (idx === -1) return null;
+        node.senders[idx] = { ...node.senders[idx], label,
+            members: { video: members.video || [], audio: members.audio || [], anc: members.anc || [] } };
+        this._saveComboNode(node);
+        return node.senders[idx];
+    }
+
+    removeComboSender(comboId) {
+        const node = this.getComboNode();
+        node.senders = node.senders.filter(s => s.id !== comboId);
+        this._saveComboNode(node);
+    }
+
+    addComboReceiver(label, members) {
+        const node = this.getComboNode();
+        const combo = { id: this.generateId(), label, type: 'combo', format: 'combo',
+            members: { video: members.video || [], audio: members.audio || [], anc: members.anc || [] } };
+        node.receivers.push(combo);
+        this._saveComboNode(node);
+        return combo;
+    }
+
+    updateComboReceiver(comboId, label, members) {
+        const node = this.getComboNode();
+        const idx = node.receivers.findIndex(r => r.id === comboId);
+        if (idx === -1) return null;
+        node.receivers[idx] = { ...node.receivers[idx], label,
+            members: { video: members.video || [], audio: members.audio || [], anc: members.anc || [] } };
+        this._saveComboNode(node);
+        return node.receivers[idx];
+    }
+
+    removeComboReceiver(comboId) {
+        const node = this.getComboNode();
+        node.receivers = node.receivers.filter(r => r.id !== comboId);
+        this._saveComboNode(node);
+    }
+
+    getAllComboSenders()   { return this.getComboNode().senders;   }
+    getAllComboReceivers() { return this.getComboNode().receivers; }
+
     // ===== RDS URLS =====
 
     /**

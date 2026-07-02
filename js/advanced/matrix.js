@@ -7,17 +7,20 @@
  */
 
 import { NMOSClient } from '../nmos-api.js';
+import { ComboManager } from '../combo-manager.js';
 
 const FORMAT_FILTER = {
     video: (fmt) => !!fmt && fmt.includes('video'),
     audio: (fmt) => !!fmt && fmt.includes('audio'),
     data:  (fmt) => !!fmt && fmt.includes('data'),
+    combo: null, // handled directly in _collectSenders / _collectReceivers
 };
 
 export class MatrixView {
     constructor(container, storage) {
         this.container = container;
         this.storage = storage;
+        this._combo = new ComboManager(storage);
         this.activeTab = 'video';
         this._clientCache = new Map();
         this._activeStates = new Map();
@@ -165,9 +168,11 @@ export class MatrixView {
     // ── Data collection ──────────────────────────────────────────────────────
 
     _collectSenders() {
+        if (this.activeTab === 'combo') return this._combo.collectComboSenders();
         const match = FORMAT_FILTER[this.activeTab];
         const result = [];
         for (const node of this.storage.getAllNodes()) {
+            if (node.type === 'combo') continue; // combos only in COMBO tab
             for (const s of (node.senders || [])) {
                 if (match && !match(s.format || '')) continue;
                 const localLabel = this.storage.getSenderLocalLabel(node.id, s.id);
@@ -178,8 +183,8 @@ export class MatrixView {
                     nodeName:     node.name,
                     nodeType:     node.type || 'is04',
                     key:          `${node.id}:${s.id}`,
-                    displayLabel,           // always local label first
-                    is04Label:    s.label,  // preserved for title / tooltip
+                    displayLabel,
+                    is04Label:    s.label,
                 });
             }
         }
@@ -187,10 +192,11 @@ export class MatrixView {
     }
 
     _collectReceivers() {
+        if (this.activeTab === 'combo') return this._combo.collectComboReceivers();
         const match = FORMAT_FILTER[this.activeTab];
         const result = [];
         for (const node of this.storage.getAllNodes()) {
-            if (node.type === 'sdp') continue;
+            if (node.type === 'sdp' || node.type === 'combo') continue;
             for (const r of (node.receivers || [])) {
                 if (match && !match(r.format || '')) continue;
                 const lock = this.storage.getReceiverLock(node.id, r.id);
@@ -201,8 +207,8 @@ export class MatrixView {
                     nodeName:     node.name,
                     key:          `${node.id}:${r.id}`,
                     locked:       lock.locked,
-                    displayLabel,           // always local label first
-                    is04Label:    r.label,  // preserved for title / tooltip
+                    displayLabel,
+                    is04Label:    r.label,
                 });
             }
         }
@@ -388,12 +394,16 @@ export class MatrixView {
 
         const colHeaders = [];
         receivers.forEach((r, colIdx) => {
+            const isComboR = this._combo.isCombo(r);
             const th = document.createElement('th');
-            th.className = 'mtx-col-header' + (r.locked ? ' mtx-col-header--locked' : '');
+            th.className = 'mtx-col-header'
+                + (r.locked ? ' mtx-col-header--locked' : '')
+                + (isComboR ? ' mtx-col-header--combo' : '');
             th.dataset.colIdx = colIdx;
             const is04Note = r.is04Label && r.is04Label !== r.displayLabel ? ` [${r.is04Label}]` : '';
             const hint = `${r.nodeName} / ${r.displayLabel}${is04Note}${r.locked ? ' [LOCKED]' : ''}`;
-            th.innerHTML = `<div class="mtx-col-label" title="${this._esc(hint)}">${this._esc(r.displayLabel)}</div>${r.locked ? lockBadgeSvg : ''}`;
+            const badges = isComboR ? `<div class="mtx-col-combo-badges">${this._combo.streamBadgesHtml(r)}</div>` : '';
+            th.innerHTML = `<div class="mtx-col-label" title="${this._esc(hint)}">${this._esc(r.displayLabel)}</div>${badges}${r.locked ? lockBadgeSvg : ''}`;
             htr.appendChild(th);
             colHeaders.push(th);
         });
@@ -411,11 +421,17 @@ export class MatrixView {
             tr.dataset.senderNodeId = s.nodeId;
 
             // Row header on the LEFT = Sender name
+            const isComboS = this._combo.isCombo(s);
             const th = document.createElement('th');
-            th.className = 'mtx-row-header';
+            th.className = 'mtx-row-header' + (isComboS ? ' mtx-row-header--combo' : '');
             const sIs04Note = s.is04Label && s.is04Label !== s.displayLabel ? ` [${s.is04Label}]` : '';
             th.title = `${s.nodeName} / ${s.displayLabel}${sIs04Note}`;
-            th.textContent = s.displayLabel;
+            if (isComboS) {
+                th.innerHTML = `<span class="mtx-row-label">${this._esc(s.displayLabel)}</span>`
+                    + `<span class="mtx-row-combo-badges">${this._combo.streamBadgesHtml(s)}</span>`;
+            } else {
+                th.textContent = s.displayLabel;
+            }
             tr.appendChild(th);
             rowHeaders.push(th);
 
@@ -430,6 +446,11 @@ export class MatrixView {
                 if (activeSenderId && activeSenderId === s.id) {
                     td.classList.add('mtx-cell--active');
                 }
+
+                const isComboPair = this._combo.isCombo(s) && this._combo.isCombo(r);
+                const isComboCell = this._combo.isCombo(s) || this._combo.isCombo(r);
+                if (isComboPair) td.classList.add('mtx-cell--combo-pair');
+                else if (isComboCell) td.classList.add('mtx-cell--combo-single');
 
                 if (r.locked) {
                     td.classList.add('mtx-cell--locked');
@@ -496,18 +517,35 @@ export class MatrixView {
             this._confirmKeyHandler = null;
         }
 
+        const isSC = this._combo.isCombo(sender);
+        const isRC = this._combo.isCombo(receiver);
+        const isComboTake = isSC || isRC;
+        let streamCount = 0;
+        if (isSC && isRC) streamCount = this._combo.countMatchingStreams(sender, receiver);
+        else if (isSC)    streamCount = this._combo.resolvePatchPairs(sender, receiver).length;
+        else if (isRC)    streamCount = this._combo.resolvePatchPairs(sender, receiver).length;
+
+        const labelHtml = isComboTake
+            ? `<span class="mtx-confirm-label mtx-confirm-label--combo">COMBO</span>`
+            : `<span class="mtx-confirm-label">TAKE</span>`;
+        const countHtml = isComboTake && streamCount > 0
+            ? `<span class="mtx-combo-stream-count">${streamCount} stream${streamCount > 1 ? 's' : ''}</span>`
+            : '';
+        const takeLabel = isComboTake ? 'TAKE ALL' : 'TAKE';
+
         bar.innerHTML = `
-            <span class="mtx-confirm-info">
-                <span class="mtx-confirm-label">TAKE</span>
+            <span class="mtx-confirm-info${isComboTake ? ' mtx-confirm-info--combo' : ''}">
+                ${labelHtml}
                 <span class="mtx-confirm-sender">${this._esc(sender.displayLabel)}</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
                     <polyline points="9 18 15 12 9 6"/>
                 </svg>
                 <span class="mtx-confirm-receiver">${this._esc(receiver.displayLabel)}</span>
+                ${countHtml}
             </span>
             <div class="mtx-confirm-actions">
                 <button class="btn btn-secondary mtx-btn-cancel">Cancel <kbd class="mtx-kbd">Esc</kbd></button>
-                <button class="btn btn-primary mtx-btn-take">TAKE <kbd class="mtx-kbd">↵</kbd></button>
+                <button class="btn btn-primary mtx-btn-take${isComboTake ? ' mtx-btn-take--combo' : ''}">${takeLabel} <kbd class="mtx-kbd">↵</kbd></button>
             </div>
         `;
         bar.classList.add('active');
@@ -623,6 +661,12 @@ export class MatrixView {
     }
 
     async _executePatch(sender, receiver, td) {
+        // Route combo patches through multi-stream handler
+        if (this._combo.isCombo(sender) || this._combo.isCombo(receiver)) {
+            return this._executeComboPatches(sender, receiver, td);
+        }
+
+        // ── Single-stream patch ───────────────────────────────────────────────
         const receiverNode = this.storage.getNode(receiver.nodeId);
         if (!receiverNode?.is05_url) {
             this._showToast('Receiver node has no IS-05 URL — load the node first.', 'error');
@@ -632,24 +676,11 @@ export class MatrixView {
         td.classList.add('mtx-cell--patching');
 
         try {
-            // Get SDP
-            let sdpText;
-            if (sender.nodeType === 'sdp' || sender.type === 'sdp') {
-                sdpText = sender.sdp_raw;
-                if (!sdpText) throw new Error('SDP sender has no sdp_raw');
-            } else {
-                if (!sender.manifest_href) throw new Error('Sender has no manifest_href');
-                const resp = await fetch(sender.manifest_href);
-                if (!resp.ok) throw new Error(`SDP fetch failed: ${resp.status}`);
-                sdpText = await resp.text();
-            }
-
+            const sdpText = await this._fetchSdp(sender);
             const client = this._getClient(receiverNode);
             const result = await client.patchReceiver(receiver.id, sender.id, sdpText);
 
             td.classList.remove('mtx-cell--patching');
-
-            // Clear previous active in this receiver's column, then mark new cell
             const colIdx = td.dataset.colIdx;
             this.container.querySelectorAll(`.mtx-cell[data-col-idx="${colIdx}"]`).forEach(c => c.classList.remove('mtx-cell--active'));
             td.classList.add('mtx-cell--active');
@@ -660,29 +691,72 @@ export class MatrixView {
                 node_name: `${sender.nodeName} → ${receiverNode.name}`,
                 sender: { id: sender.id, label: sender.displayLabel },
                 receiver: { id: receiver.id, label: receiver.displayLabel },
-                status: 'success',
-                patch_body: result.patchBody,
-                active_state: result.activeState
+                status: 'success', patch_body: result.patchBody, active_state: result.activeState
             });
-
             this._showToast(`TAKE: ${sender.displayLabel} → ${receiver.displayLabel}`, 'success');
         } catch (e) {
             td.classList.remove('mtx-cell--patching');
             td.classList.add('mtx-cell--error');
             setTimeout(() => td.classList.remove('mtx-cell--error'), 2500);
-
             this.storage.addHistory({
                 node_id: receiver.nodeId,
                 node_name: `? → ${this.storage.getNode(receiver.nodeId)?.name || '?'}`,
                 sender: { id: sender.id, label: sender.displayLabel },
                 receiver: { id: receiver.id, label: receiver.displayLabel },
-                status: 'failed',
-                error: e.message
+                status: 'failed', error: e.message
             });
-
             this._showToast(`Patch failed: ${e.message}`, 'error');
             console.error('[MTX] Patch failed:', e);
         }
+    }
+
+    async _executeComboPatches(sender, receiver, td) {
+        const pairs = this._combo.resolvePatchPairs(sender, receiver);
+        if (pairs.length === 0) {
+            this._showToast('No matching streams to patch', 'error');
+            return;
+        }
+
+        td.classList.add('mtx-cell--patching');
+
+        const results = await Promise.allSettled(
+            pairs.map(({ sender: s, receiver: r }) => this._patchSingleStream(s, r))
+        );
+
+        td.classList.remove('mtx-cell--patching');
+        const failed = results.filter(r => r.status === 'rejected').length;
+
+        if (failed === 0) {
+            const colIdx = td.dataset.colIdx;
+            this.container.querySelectorAll(`.mtx-cell[data-col-idx="${colIdx}"]`).forEach(c => {
+                c.classList.remove('mtx-cell--active', 'mtx-cell--combo-active');
+            });
+            td.classList.add('mtx-cell--active', 'mtx-cell--combo-active');
+            this._showToast(`COMBO PATCH: ${pairs.length} stream${pairs.length > 1 ? 's' : ''}`, 'success');
+        } else {
+            td.classList.add('mtx-cell--error');
+            setTimeout(() => td.classList.remove('mtx-cell--error'), 2500);
+            this._showToast(`COMBO PATCH: ${pairs.length - failed} ok, ${failed} failed`, 'error');
+        }
+    }
+
+    async _patchSingleStream(sender, receiver) {
+        const receiverNode = this.storage.getNode(receiver.nodeId);
+        if (!receiverNode?.is05_url) throw new Error(`No IS-05 URL for receiver node`);
+        const sdpText = await this._fetchSdp(sender);
+        const client = this._getClient(receiverNode);
+        return client.patchReceiver(receiver.id, sender.id, sdpText);
+    }
+
+    async _fetchSdp(sender) {
+        if (sender.nodeType === 'sdp' || sender.type === 'sdp') {
+            if (!sender.sdp_raw) throw new Error('SDP sender has no sdp_raw');
+            return sender.sdp_raw;
+        }
+        if (!sender.manifest_href) throw new Error('Sender has no manifest_href');
+        const resp = await fetch(sender.manifest_href);
+        if (!resp.ok) throw new Error(`SDP fetch failed: ${resp.status}`);
+        return resp.text();
     }
 
     // ── Refresh active states from IS-05 ─────────────────────────────────────

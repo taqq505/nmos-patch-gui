@@ -102,6 +102,11 @@ class BCCApplication {
             this.openSettingsModal('about');
         });
 
+        // Advanced Mode toggle
+        document.getElementById('advancedModeBtn').addEventListener('click', () => {
+            this.toggleAdvancedMode();
+        });
+
         // Resource detail modal copy buttons
         document.getElementById('copySdpBtn').addEventListener('click', () => {
             const sdpContent = document.getElementById('sdpContent').textContent;
@@ -144,6 +149,52 @@ class BCCApplication {
         document.getElementById('cancelAddNode').addEventListener('click', () => {
             this.closeAddNodeModal();
         });
+
+        // Add Node Modal — tab switching
+        document.querySelectorAll('.add-node-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.add-node-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                const target = tab.dataset.tab;
+                document.querySelectorAll('.add-node-tab-content').forEach(c => {
+                    c.style.display = c.dataset.tab === target ? '' : 'none';
+                });
+            });
+        });
+
+        // SDP tab — drag and drop
+        const sdpDropZone = document.getElementById('sdpDropZone');
+        const sdpInput = document.getElementById('sdpInput');
+        sdpDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            sdpDropZone.classList.add('drag-over');
+        });
+        sdpDropZone.addEventListener('dragleave', () => {
+            sdpDropZone.classList.remove('drag-over');
+        });
+        sdpDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            sdpDropZone.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    sdpInput.value = ev.target.result;
+                };
+                reader.readAsText(file);
+                // Auto-fill label from filename
+                const labelInput = document.getElementById('sdpSenderLabel');
+                if (!labelInput.value) {
+                    labelInput.value = file.name.replace(/\.sdp$/i, '');
+                }
+            }
+        });
+
+        // SDP Preview flow
+        document.getElementById('previewSdpBtn').addEventListener('click', () => this.handlePreviewSdp());
+        document.getElementById('cancelAddSdp').addEventListener('click', () => this.closeAddNodeModal());
+        document.getElementById('backToSdpForm').addEventListener('click', () => this.closeSdpPreviewModal());
+        document.getElementById('confirmAddSdpBtn').addEventListener('click', () => this.handleAddSdp());
 
         // Connect RDS Modal
         document.getElementById('connectRdsForm').addEventListener('submit', (e) => {
@@ -326,8 +377,17 @@ class BCCApplication {
             return;
         }
 
-        // Populate both selects with same nodes
+        // Populate selects — SDP Sources only in sender select
         nodes.forEach(node => {
+            if (node.type === 'sdp') {
+                if (node.senders && node.senders.length > 0) {
+                    const senderOption = document.createElement('option');
+                    senderOption.value = node.id;
+                    senderOption.textContent = `📄 ${node.name}`;
+                    senderSelect.appendChild(senderOption);
+                }
+                return;
+            }
             const senderOption = document.createElement('option');
             senderOption.value = node.id;
             senderOption.textContent = `${node.name} (${node.is04_url})`;
@@ -364,6 +424,14 @@ class BCCApplication {
         const node = this.storage.getNode(nodeId);
         if (!node) {
             this.showToast('Sender node not found', 'error');
+            return;
+        }
+
+        // SDP Sources node — no IS-04 client needed
+        if (node.type === 'sdp') {
+            this.senderNode = node;
+            this.senderClient = null;
+            this.renderSenders(node.senders || []);
             return;
         }
 
@@ -1142,19 +1210,28 @@ class BCCApplication {
             return;
         }
 
-        listEl.innerHTML = senders.map(sender => `
+        const senderSettings = this.senderNode
+            ? (this.storage.getNode(this.senderNode.id)?.resource_settings || {})
+            : {};
+
+        listEl.innerHTML = senders.map(sender => {
+            const settings = senderSettings[sender.id] || { local_label: '' };
+            const localLabel = settings.local_label || '';
+            return `
             <div class="item" data-id="${sender.id}" data-type="sender" data-format="${sender.format}">
                 <div class="item-label">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="2"/>
                         <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                     </svg>
-                    ${this.escapeHtml(sender.label)}
+                    ${localLabel ? this.escapeHtml(localLabel) : this.escapeHtml(sender.label)}
                 </div>
+                ${localLabel ? `<div class="item-nmos-label">${this.escapeHtml(sender.label)}</div>` : ''}
                 <div class="item-id">${sender.id}</div>
                 ${sender.format ? `<div class="item-format">${this.escapeHtml(sender.format).toUpperCase()}</div>` : ''}
-            </div>
-        `).join('');
+                ${sender.type === 'sdp' ? `<div class="item-sdp-badge">SDP Source</div>` : ''}
+            </div>`;
+        }).join('');
 
         // Add click listeners
         listEl.querySelectorAll('.item').forEach(item => {
@@ -1187,26 +1264,45 @@ class BCCApplication {
             return;
         }
 
-        listEl.innerHTML = receivers.map(receiver => `
-            <div class="item" data-id="${receiver.id}" data-type="receiver" data-format="${receiver.format}">
+        const lockedReceivers = this.receiverNode
+            ? this.storage.getLockedReceivers(this.receiverNode.id)
+            : {};
+
+        listEl.innerHTML = receivers.map(receiver => {
+            const lockInfo = lockedReceivers[receiver.id] || { locked: false, local_label: '' };
+            const isLocked = lockInfo.locked;
+            const localLabel = lockInfo.local_label || '';
+            return `
+            <div class="item${isLocked ? ' item-locked' : ''}" data-id="${receiver.id}" data-type="receiver" data-format="${receiver.format}">
                 <div class="item-label">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="2" y="7" width="20" height="14" rx="2"/>
                         <circle cx="8" cy="14" r="1"/>
                         <circle cx="12" cy="14" r="1"/>
                     </svg>
-                    ${this.escapeHtml(receiver.label)}
+                    ${localLabel ? this.escapeHtml(localLabel) : this.escapeHtml(receiver.label)}
                 </div>
+                ${localLabel ? `<div class="item-nmos-label">${this.escapeHtml(receiver.label)}</div>` : ''}
                 <div class="item-id">${receiver.id}</div>
                 ${receiver.format ? `<div class="item-format">${this.escapeHtml(receiver.format).toUpperCase()}</div>` : ''}
-            </div>
-        `).join('');
+                ${isLocked ? `
+                <div class="item-lock-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    Locking${localLabel ? ` — ${this.escapeHtml(localLabel)}` : ''}
+                </div>` : ''}
+            </div>`;
+        }).join('');
 
         // Add click listeners
         listEl.querySelectorAll('.item').forEach(item => {
-            item.addEventListener('click', () => {
-                this.selectReceiver(item.dataset.id);
-            });
+            if (!item.classList.contains('item-locked')) {
+                item.addEventListener('click', () => {
+                    this.selectReceiver(item.dataset.id);
+                });
+            }
             item.addEventListener('dblclick', (e) => {
                 e.stopPropagation();
                 this.showReceiverDetails(item.dataset.id);
@@ -1240,6 +1336,9 @@ class BCCApplication {
 
         const receiver = this.receiverNode.receivers.find(r => r.id === receiverId);
         if (!receiver) return;
+
+        const lockInfo = this.storage.getReceiverLock(this.receiverNode.id, receiverId);
+        if (lockInfo.locked) return;
 
         // Update UI
         document.querySelectorAll('#receiverList .item').forEach(item => {
@@ -1281,7 +1380,8 @@ class BCCApplication {
      * Execute patch operation
      */
     async executePatch() {
-        if (!this.selectedSender || !this.selectedReceiver || !this.senderClient || !this.receiverClient) {
+        const isSdpSender = this.selectedSender && this.selectedSender.type === 'sdp';
+        if (!this.selectedSender || !this.selectedReceiver || (!isSdpSender && !this.senderClient) || !this.receiverClient) {
             return;
         }
         this._lastUserAction = Date.now();
@@ -1303,7 +1403,9 @@ class BCCApplication {
 
             // Get SDP from sender
             statusEl.textContent = 'Fetching SDP from sender...';
-            const sdp = await this.senderClient.getSenderSDP(this.selectedSender);
+            const sdp = isSdpSender
+                ? this.selectedSender.sdp_raw
+                : await this.senderClient.getSenderSDP(this.selectedSender);
 
             // Execute patch on receiver (will check receiver state internally)
             statusEl.textContent = 'Executing patch...';
@@ -1445,8 +1547,21 @@ class BCCApplication {
         const progress = document.getElementById('addNodeProgress');
 
         form.reset();
-        form.style.display = 'block';
         progress.style.display = 'none';
+
+        // Reset tabs to IS-04 (default)
+        document.querySelectorAll('.add-node-tab').forEach(t => {
+            t.classList.toggle('active', t.dataset.tab === 'is04');
+        });
+        document.querySelectorAll('.add-node-tab-content').forEach(c => {
+            c.style.display = c.dataset.tab === 'is04' ? 'block' : 'none';
+        });
+
+        // Reset SDP tab fields
+        document.getElementById('sdpSenderLabel').value = '';
+        document.getElementById('sdpInput').value = '';
+        document.getElementById('sdpParseInfo').textContent = '';
+
         modal.classList.add('active');
     }
 
@@ -1455,6 +1570,106 @@ class BCCApplication {
      */
     closeAddNodeModal() {
         document.getElementById('addNodeModal').classList.remove('active');
+    }
+
+    /**
+     * Parse SDP and open the preview modal
+     */
+    async handlePreviewSdp() {
+        const label = document.getElementById('sdpSenderLabel').value.trim();
+        const sdpText = document.getElementById('sdpInput').value.trim();
+        const infoEl = document.getElementById('sdpParseInfo');
+        infoEl.textContent = '';
+
+        if (!sdpText) {
+            this.showToast('Please enter SDP content', 'error');
+            return;
+        }
+        if (!label) {
+            this.showToast('Please enter a sender label', 'error');
+            return;
+        }
+
+        try {
+            const { SDPParser } = await import('./sdp-parser.js');
+            const parser = new SDPParser();
+            const info = parser.getSDPInfo(sdpText);
+            const redundant = /a=group:DUP/i.test(sdpText);
+
+            const lines = sdpText.replace(/\r\n/g, '\n').split('\n');
+            const legs = parser.extractTransportParams(lines, redundant ? 2 : 1);
+
+            this._renderSdpPreview(label, info, legs, redundant);
+            document.getElementById('sdpPreviewModal').classList.add('active');
+        } catch (e) {
+            infoEl.style.color = '#c94040';
+            infoEl.textContent = `✗ ${e.message}`;
+        }
+    }
+
+    /**
+     * Render SDP preview modal content
+     */
+    _renderSdpPreview(label, info, legs, redundant) {
+        const contentEl = document.getElementById('sdpPreviewContent');
+        const legLabels = ['PRIMARY', 'SECONDARY'];
+
+        const legsHtml = legs.map((leg, i) => {
+            if (!leg.destination_port || !leg.multicast_ip) return '';
+            return `
+            <div class="sdp-preview-leg">
+                <div class="sdp-preview-leg-title">${legs.length > 1 ? legLabels[i] : 'NETWORK'}</div>
+                <div class="sdp-preview-row"><span>Source IP</span><span>${this.escapeHtml(leg.source_ip || '—')}</span></div>
+                <div class="sdp-preview-row"><span>Destination</span><span>${this.escapeHtml(leg.multicast_ip)}:${leg.destination_port}</span></div>
+            </div>`;
+        }).join('');
+
+        // ST 2110-40 (ancillary/metadata) is carried as "m=video" but rtpmap encoding is smpte291
+        const displayTypes = info.streams.map(s =>
+            s.format && /\bsmpte291\//i.test(s.format) ? 'ancillary' : s.type
+        );
+        const streamDesc = [...new Set(displayTypes)].join(' / ');
+
+        contentEl.innerHTML = `
+            <div class="sdp-preview-header">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                ${this.escapeHtml(label)} — ${this.escapeHtml(streamDesc || 'unknown')}${redundant ? ' — ST 2110-7 (redundant)' : ''}
+            </div>
+            ${legsHtml}
+        `;
+
+        // Stash data for confirm step
+        this._pendingSdpAdd = { label, sdpText: document.getElementById('sdpInput').value.trim() };
+    }
+
+    /**
+     * Close SDP preview modal (back to form)
+     */
+    closeSdpPreviewModal() {
+        document.getElementById('sdpPreviewModal').classList.remove('active');
+    }
+
+    /**
+     * Handle Add SDP Source (confirm step)
+     */
+    handleAddSdp() {
+        if (!this._pendingSdpAdd) return;
+        const { label, sdpText } = this._pendingSdpAdd;
+
+        this.storage.addSdpSender(label, sdpText);
+        this.loadNodes();
+        this.closeSdpPreviewModal();
+        this.closeAddNodeModal();
+        this.showToast(`SDP Source added: ${label}`, 'success');
+        this._pendingSdpAdd = null;
+
+        // Auto-select SDP Sources node in sender
+        const sdpNode = this.storage.getSdpSourcesNode();
+        const senderSelect = document.getElementById('senderNodeSelect');
+        senderSelect.value = sdpNode.id;
+        this.selectSenderNode(sdpNode.id);
     }
 
     /**
@@ -1684,10 +1899,48 @@ class BCCApplication {
             return;
         }
 
-        content.innerHTML = nodes.map(node => `
+        content.innerHTML = nodes.map(node => {
+            const receivers = node.receivers || [];
+            const senders = node.senders || [];
+            const resourceSettings = node.resource_settings || {};
+            const receiversHtml = receivers.length === 0
+                ? `<div class="node-receiver-empty">No receivers cached — Re-sync to load</div>`
+                : receivers.map(r => {
+                    const lock = resourceSettings[r.id] || { locked: false, local_label: '' };
+                    return `
+                    <div class="node-receiver-row" data-node-id="${node.id}" data-receiver-id="${r.id}">
+                        <div class="node-receiver-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                                <rect x="2" y="7" width="20" height="14" rx="2"/>
+                                <circle cx="8" cy="14" r="1"/>
+                                <circle cx="12" cy="14" r="1"/>
+                            </svg>
+                            ${this.escapeHtml(r.label || r.id)}
+                        </div>
+                        <input class="node-receiver-memo" type="text" placeholder="Local label (optional)"
+                            value="${this.escapeHtml(lock.local_label || '')}"
+                            data-node-id="${node.id}" data-receiver-id="${r.id}">
+                        <label class="node-receiver-lock-toggle" title="Lock this receiver">
+                            <input type="checkbox" class="node-receiver-lock-cb"
+                                data-node-id="${node.id}" data-receiver-id="${r.id}"
+                                ${lock.locked ? 'checked' : ''}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                        </label>
+                    </div>`;
+                }).join('');
+
+            return `
             <div class="node-manage-item" data-id="${node.id}">
-                <div class="node-manage-header">
-                    <div class="node-manage-name">${this.escapeHtml(node.name)}</div>
+                <div class="node-manage-header node-accordion-header" data-id="${node.id}">
+                    <div class="node-manage-name">
+                        <svg class="node-accordion-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                        ${this.escapeHtml(node.name)}
+                    </div>
                     <div class="node-manage-actions">
                         <button class="btn btn-small node-refresh-btn" data-id="${node.id}" title="Re-sync from IS-04">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
@@ -1707,21 +1960,138 @@ class BCCApplication {
                 </div>
                 <div class="node-manage-info">
                     <span class="node-manage-url">${this.escapeHtml(node.is04_url)}</span>
-                    <span class="node-manage-stats">
-                        ${node.senders ? node.senders.length : 0} senders &nbsp;/&nbsp; ${node.receivers ? node.receivers.length : 0} receivers
+                    <span class="node-manage-stats" data-node-id="${node.id}">
+                        ${node.senders ? node.senders.length : 0} senders &nbsp;/&nbsp; ${receivers.length} receivers${Object.values(resourceSettings).filter(l => l.locked).length > 0 ? ` &nbsp;/&nbsp; <span style="color:#c94040">${Object.values(resourceSettings).filter(l => l.locked).length} Locking</span>` : ''}
                     </span>
                 </div>
                 ${node.added_at ? `<div class="node-manage-date">Added: ${new Date(node.added_at).toLocaleString()}</div>` : ''}
-            </div>
-        `).join('');
+                <div class="node-accordion-body" style="display:none;">
+                    <div class="node-receivers-header">Senders — Local Label</div>
+                    ${senders.length === 0
+                        ? `<div class="node-receiver-empty">No senders cached — Re-sync to load</div>`
+                        : senders.map(s => {
+                            const settings = resourceSettings[s.id] || { local_label: '' };
+                            return `
+                            <div class="node-receiver-row" data-node-id="${node.id}" data-sender-id="${s.id}">
+                                <div class="node-receiver-label">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                                        <circle cx="12" cy="12" r="2"/>
+                                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                                    </svg>
+                                    ${this.escapeHtml(s.label || s.id)}
+                                </div>
+                                <input class="node-sender-label-input" type="text" placeholder="Local label (optional)"
+                                    value="${this.escapeHtml(settings.local_label || '')}"
+                                    data-node-id="${node.id}" data-sender-id="${s.id}">
+                                ${node.type === 'sdp' ? `
+                                <button type="button" class="btn-icon-small node-sdp-sender-delete" title="Delete SDP source"
+                                    data-node-id="${node.id}" data-sender-id="${s.id}">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                        <polyline points="3 6 5 6 21 6"/>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                    </svg>
+                                </button>` : `<div class="node-receiver-lock-spacer"></div>`}
+                            </div>`;
+                        }).join('')
+                    }
+                    <div class="node-receivers-header" style="margin-top:12px;">Receivers — Lock Control &amp; Local Label</div>
+                    ${receiversHtml}
+                </div>
+            </div>`;
+        }).join('');
+
+        // Accordion toggle — click anywhere on tile except buttons
+        content.querySelectorAll('.node-manage-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                if (e.target.closest('button') || e.target.closest('.node-receiver-lock-toggle') || e.target.closest('.node-receiver-memo') || e.target.closest('.node-sender-label-input')) return;
+                const body = item.querySelector('.node-accordion-body');
+                const arrow = item.querySelector('.node-accordion-arrow');
+                const open = body.style.display !== 'none';
+                body.style.display = open ? 'none' : 'block';
+                arrow.style.transform = open ? '' : 'rotate(90deg)';
+                item.classList.toggle('accordion-open', !open);
+            });
+        });
 
         // Wire up buttons
         content.querySelectorAll('.node-delete-btn').forEach(btn => {
-            btn.addEventListener('click', () => this.handleDeleteNode(btn.dataset.id));
+            btn.addEventListener('click', (e) => { e.stopPropagation(); this.handleDeleteNode(btn.dataset.id); });
         });
         content.querySelectorAll('.node-refresh-btn').forEach(btn => {
-            btn.addEventListener('click', () => this.handleRefreshNode(btn.dataset.id));
+            btn.addEventListener('click', (e) => { e.stopPropagation(); this.handleRefreshNode(btn.dataset.id); });
         });
+
+        // Lock checkbox
+        content.querySelectorAll('.node-receiver-lock-cb').forEach(cb => {
+            cb.addEventListener('change', () => {
+                const { nodeId, receiverId } = cb.dataset;
+                const memoInput = content.querySelector(
+                    `.node-receiver-memo[data-node-id="${nodeId}"][data-receiver-id="${receiverId}"]`
+                );
+                this.storage.setReceiverLock(nodeId, receiverId, cb.checked, memoInput ? memoInput.value : '');
+                if (this.receiverNode && this.receiverNode.id === nodeId) this.renderReceivers(this.receiverNode.receivers);
+                this._updateLockingCount(content, nodeId);
+            });
+        });
+
+        // Local label input (save on blur or Enter)
+        content.querySelectorAll('.node-receiver-memo').forEach(input => {
+            const save = () => {
+                const { nodeId, receiverId } = input.dataset;
+                const cb = content.querySelector(
+                    `.node-receiver-lock-cb[data-node-id="${nodeId}"][data-receiver-id="${receiverId}"]`
+                );
+                this.storage.setReceiverLock(nodeId, receiverId, cb ? cb.checked : false, input.value);
+                if (this.receiverNode && this.receiverNode.id === nodeId) this.renderReceivers(this.receiverNode.receivers);
+            };
+            input.addEventListener('blur', save);
+            input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } });
+        });
+
+        // Sender local label input (save on blur or Enter)
+        content.querySelectorAll('.node-sender-label-input').forEach(input => {
+            const save = () => {
+                const { nodeId, senderId } = input.dataset;
+                this.storage.setSenderLocalLabel(nodeId, senderId, input.value);
+                if (this.senderNode && this.senderNode.id === nodeId) this.renderSenders(this.senderNode.senders);
+            };
+            input.addEventListener('blur', save);
+            input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } });
+        });
+
+        // SDP sender delete
+        content.querySelectorAll('.node-sdp-sender-delete').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const { senderId } = btn.dataset;
+                const row = btn.closest('.node-receiver-row');
+                const label = row ? row.querySelector('.node-receiver-label').textContent.trim() : senderId;
+                if (!confirm(`Delete SDP source "${label}"?`)) return;
+
+                this.storage.removeSdpSender(senderId);
+                this.loadNodesTab();
+
+                if (this.senderNode && this.senderNode.type === 'sdp') {
+                    const updatedNode = this.storage.getNode(this.senderNode.id);
+                    this.senderNode.senders = updatedNode.senders;
+                    this.renderSenders(updatedNode.senders);
+                    if (this.selectedSender && this.selectedSender.id === senderId) {
+                        this.selectedSender = null;
+                        this.updateTakeButton();
+                    }
+                }
+                this.loadNodes();
+            });
+        });
+    }
+
+    _updateLockingCount(content, nodeId) {
+        const statsEl = content.querySelector(`.node-manage-stats[data-node-id="${nodeId}"]`);
+        if (!statsEl) return;
+        const node = this.storage.getNode(nodeId);
+        if (!node) return;
+        const receivers = node.receivers || [];
+        const locked = Object.values(node.resource_settings || {}).filter(l => l.locked).length;
+        statsEl.innerHTML = `${node.senders ? node.senders.length : 0} senders &nbsp;/&nbsp; ${receivers.length} receivers${locked > 0 ? ` &nbsp;/&nbsp; <span style="color:#c94040">${locked} Locking</span>` : ''}`;
     }
 
     /**
@@ -2779,7 +3149,7 @@ class BCCApplication {
         const activeContent = document.getElementById('activeContent');
 
         title.textContent = `Receiver: ${receiver.label}`;
-        sdpSection.style.display = 'none'; // No SDP for receiver
+        sdpSection.style.display = 'none';
         activeContent.textContent = 'Loading...';
 
         modal.classList.add('active');
@@ -2805,6 +3175,51 @@ class BCCApplication {
         return json
             .replace(/: true/g, ': <span class="json-true">true</span>')
             .replace(/: false/g, ': <span class="json-false">false</span>');
+    }
+
+    // ===== ADVANCED MODE =====
+
+    async toggleAdvancedMode() {
+        const nodeSelectors = document.querySelector('.node-selectors');
+        const controlPanel  = document.querySelector('.control-panel');
+        const advancedEl    = document.getElementById('advancedMode');
+        const btn           = document.getElementById('advancedModeBtn');
+
+        const entering = advancedEl.style.display === 'none' || advancedEl.style.display === '';
+
+        if (entering) {
+            nodeSelectors.style.display = 'none';
+            controlPanel.style.display  = 'none';
+            advancedEl.style.display    = 'flex';
+            btn.classList.add('mode-active');
+            document.body.classList.add('mtx-active');
+
+            // Lazy-load the matrix module on first use
+            if (!this.matrixView) {
+                const { MatrixView } = await import('./advanced/matrix.js');
+                this.matrixView = new MatrixView(
+                    document.getElementById('mtxContainer'),
+                    this.storage
+                );
+
+                // Wire up tab buttons
+                document.querySelectorAll('.mtx-tab').forEach(tab => {
+                    tab.addEventListener('click', (e) => {
+                        document.querySelectorAll('.mtx-tab').forEach(t => t.classList.remove('active'));
+                        e.currentTarget.classList.add('active');
+                        this.matrixView.setTab(e.currentTarget.dataset.tab);
+                    });
+                });
+            }
+
+            this.matrixView.open();
+        } else {
+            nodeSelectors.style.display = '';
+            controlPanel.style.display  = '';
+            advancedEl.style.display    = 'none';
+            btn.classList.remove('mode-active');
+            document.body.classList.remove('mtx-active');
+        }
     }
 
     /**

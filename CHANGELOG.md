@@ -1,5 +1,37 @@
 # Changelog
 
+## v2026.06.30
+
+### New Features
+- **Advanced Mode — Matrix View** — Full crosspoint matrix for video/audio/data routing. Rows = Senders, columns = Receivers (rotated headers). Supports three patch modes switchable via a segmented control:
+  - **TAKE** — Select a crosspoint and confirm via a bottom bar before patching.
+  - **1-CLICK** — Tap a crosspoint to patch immediately (no confirmation step).
+  - **BULK** — Select multiple crosspoints across receivers, then TAKE ALL in one shot. Each receiver can only have one pending sender.
+  Locked receivers (from node settings) are shown with a lock badge and dark-red header, and cannot be clicked. Local labels are shown with priority over IS-04 labels. The matrix auto-updates when nodes are added or changed. Zoom in/out (40%–200%) is available within the matrix box. Side panels can be collapsed. Custom scrollbars match the main page style. Vertical scrolling is contained within the matrix box at all viewport sizes.
+  **アドバンスモード — マトリクスビュー** — 映像/音声/データのクロスポイントマトリクス。行 = Sender、列 = Receiver（縦書きヘッダー）。セグメントコントロールで3モードを切替可能：
+  - **TAKE** — クロスポイントを選択し、下部バーで確認してPATCH。
+  - **1-CLICK** — タップ直後に即時PATCH（確認ステップなし）。
+  - **BULK** — 複数クロスポイントを選択してまとめてTAKE。1つのReceiverに選択できるSenderは1つまで。
+  ノード設定でロックされたReceiverはロックバッジ付き（暗赤色）で表示され、選択不可。ローカルラベルをIS-04ラベルより優先表示。ノード追加・変更時にマトリクスを自動更新。マトリクスボックス内の拡大縮小（40%〜200%）に対応。サイドパネルは折りたたみ可能。カスタムスクロールバーはメインページと統一。縦スクロールはマトリクスボックス内のみに限定。
+
+- **Receiver Lock & Local Label** — Per-receiver lock toggle with memo, set from an accordion in Settings → NODE. Locked receivers stay visible in the receiver list but cannot be selected for patching. Senders and receivers also support a `local_label` (custom name shown instead of the NMOS label).
+  **Receiverロック & ローカルラベル** — Settings → NODEのアコーディオンから各Receiverをロック+メモ設定可能。ロック中はReceiverリストに表示されるが選択不可。Sender/Receiver共通で`local_label`（NMOSラベルの代わりに表示するカスタム名）にも対応。
+
+- **SDP Source registration** — Add a sender directly from a pasted/dropped SDP file (no IS-04 required). Shows a preview (source/destination IP, port, ST 2110-7 redundancy) before committing. Registered under a virtual "SDP Sources" node and usable in the normal TAKE flow.
+  **SDPソース登録** — SDPファイルの貼り付け/ドラッグ&ドロップでIS-04不要のSenderを登録。登録前に内容確認（送信元/宛先IP、ポート、ST 2110-7冗長判定）を表示。仮想ノード「SDP Sources」にまとまり、通常のTAKE操作で使用可能。
+
+### Bug Fixes
+- Resource detail modal (Sender/Receiver double-click JSON view) no longer shrinks to fit content — fixed height responsive to window size.
+  リソース詳細モーダル（Sender/Receiverダブルクリックで開くJSON表示）がコンテンツ量で縮んでしまう問題を修正。ウィンドウサイズに追従する高さに変更。
+
+- Add Node modal occasionally showed both IS-04 and SDP forms at once when reopened after switching tabs.
+  Add Nodeモーダルで、タブ切り替え後に再度開くとIS-04フォームとSDPフォームが同時に表示される場合がある問題を修正。
+
+- ST 2110-40 (ancillary/metadata) SDP was misclassified as "video" since it is carried over an `m=video` line; now detected via the `smpte291` rtpmap encoding.
+  ST 2110-40（メタデータ）のSDPが `m=video` 行のため "video" と誤判定される問題を修正。rtpmapの`smpte291`エンコーディングで判定するよう変更。
+
+---
+
 ## v2026.04.07
 
 ### New Features

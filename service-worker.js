@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nmos-bcc-v2026.04.07';
+const CACHE_NAME = 'nmos-bcc-v2026.06.30s';
 
 const FILES_TO_CACHE = [
     './',
@@ -10,7 +10,8 @@ const FILES_TO_CACHE = [
     './js/nmos-api.js',
     './js/storage.js',
     './js/rds-subscription.js',
-    './js/streamdeck-bridge.js'
+    './js/streamdeck-bridge.js',
+    './js/advanced/matrix.js'
 ];
 
 // Install: cache all app files

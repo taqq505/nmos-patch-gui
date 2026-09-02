@@ -49,6 +49,15 @@ class BCCApplication {
         this.checkCookieConsent();
         this.reconnectEnabledSubscriptions();
         this.initStreamDeck();
+        this._requestStoragePersistence();
+    }
+
+    _requestStoragePersistence() {
+        if (navigator.storage && navigator.storage.persist) {
+            navigator.storage.persist().then(granted => {
+                console.log('[BCC] Storage persistence granted:', granted);
+            });
+        }
     }
 
     /**

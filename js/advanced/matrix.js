@@ -639,9 +639,15 @@ export class MatrixView {
                 if (!sdpText) throw new Error('SDP sender has no sdp_raw');
             } else {
                 if (!sender.manifest_href) throw new Error('Sender has no manifest_href');
-                const resp = await fetch(sender.manifest_href);
-                if (!resp.ok) throw new Error(`SDP fetch failed: ${resp.status}`);
-                sdpText = await resp.text();
+                try {
+                    const resp = await fetch(sender.manifest_href);
+                    if (!resp.ok) throw new Error(`SDP fetch failed: ${resp.status}`);
+                    sdpText = await resp.text();
+                } catch (e) {
+                    const senderNode = this.storage.getNode(sender.nodeId);
+                    sdpText = senderNode ? await this._getClient(senderNode).fetchTransportFile(sender.id) : null;
+                    if (sdpText === null) throw e;
+                }
             }
 
             const client = this._getClient(receiverNode);

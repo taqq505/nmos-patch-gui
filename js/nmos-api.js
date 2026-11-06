@@ -182,18 +182,51 @@ export class NMOSClient {
 
     /**
      * Get SDP from sender's manifest_href
+     * Falls back to the IS-05 transportfile when manifest_href cannot be fetched
      */
     async getSenderSDP(sender) {
         if (!sender.manifest_href) {
             throw new Error('Sender does not have manifest_href');
         }
 
-        const response = await fetch(sender.manifest_href);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch SDP: ${response.status} ${response.statusText}`);
+        try {
+            const response = await fetch(sender.manifest_href);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch SDP: ${response.status} ${response.statusText}`);
+            }
+
+            return await response.text();
+        } catch (error) {
+            const sdp = await this.fetchTransportFile(sender.id);
+            if (sdp !== null) return sdp;
+            throw error;
+        }
+    }
+
+    /**
+     * Fetch SDP from the IS-05 transportfile endpoint
+     * Returns null instead of throwing so callers can rethrow their original error
+     */
+    async fetchTransportFile(senderId) {
+        if (!this.is05BaseUrl || !this.is05Version) {
+            return null;
         }
 
-        return await response.text();
+        const base = this.is05BaseUrl.replace(/\/$/, '');
+        const url = `${base}/x-nmos/connection/${this.is05Version}/single/senders/${senderId}/transportfile`;
+
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                console.warn(`IS-05 transportfile fallback failed: HTTP ${response.status} (${url})`);
+                return null;
+            }
+            console.log('✅ SDP fetched from IS-05 transportfile (manifest_href fallback):', url);
+            return await response.text();
+        } catch (error) {
+            console.warn(`IS-05 transportfile fallback failed: ${error.message} (${url})`);
+            return null;
+        }
     }
 
     /**

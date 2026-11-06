@@ -28,3 +28,4 @@ nohup.out
 # Temporary files
 *.tmp
 .cache/
+.temp/

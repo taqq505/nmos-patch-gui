@@ -1,5 +1,13 @@
 # Changelog
 
+## v2026.11.12
+
+### Bug Fixes
+- **SDP fetch fallback to IS-05 transportfile** — Fixed patching failure on devices whose `manifest_href` cannot be fetched from the browser (e.g. served from a separate server without CORS headers). When the `manifest_href` fetch fails, the SDP is now fetched from the IS-05 `/single/senders/{id}/transportfile` endpoint instead. Applies to TAKE, Matrix View, and the sender detail modal. Behavior is unchanged for devices whose `manifest_href` works.
+  **SDP取得のIS-05 transportfileフォールバック** — `manifest_href` をブラウザから取得できない機器（別サーバーで配信されCORS非対応の場合など）で切り替えできない問題を修正。`manifest_href` の取得に失敗した場合のみ、IS-05の `/single/senders/{id}/transportfile` からSDPを取得します。TAKE・マトリクスビュー・Sender詳細モーダルが対象。`manifest_href` が正常に取得できる機器の動作は変わりません。
+
+---
+
 ## v2026.06.30
 
 ### New Features
